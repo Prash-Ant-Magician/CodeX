@@ -29,6 +29,21 @@ export default function CCompiler() {
   const [result, setResult] = useState<CompilationResult | null>(null);
   const { toast } = useToast();
 
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const target = e.target as HTMLTextAreaElement;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      const value = target.value;
+      const newValue = value.substring(0, start) + '  ' + value.substring(end);
+      setCode(newValue);
+      setTimeout(() => {
+        target.selectionStart = target.selectionEnd = start + 2;
+      }, 0);
+    }
+  };
+
   const handleCompileAndRun = async () => {
     setIsCompiling(true);
     setResult(null);
@@ -54,6 +69,7 @@ export default function CCompiler() {
                  <Textarea
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
+                    onKeyDown={handleTabKeyDown}
                     className="flex-1 font-code text-sm bg-muted/50 resize-none h-full"
                     placeholder="Write your C code here..."
                 />
