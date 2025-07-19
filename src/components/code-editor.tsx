@@ -5,14 +5,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnippets, deleteLocalSnippet, Snippet, SnippetData } from '@/lib/snippets';
 import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, HelpCircle } from 'lucide-react';
+import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, HelpCircle, Sparkles } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -99,6 +100,9 @@ export default function CodeEditor() {
   const [snippetName, setSnippetName] = useState('');
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [isLoadOpen, setIsLoadOpen] = useState(false);
+  const [isAiGenerateOpen, setIsAiGenerateOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -263,6 +267,37 @@ export default function CodeEditor() {
     }
   }
 
+  const handleGenerateCode = async () => {
+    if (!aiPrompt) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Prompt cannot be empty.' });
+        return;
+    }
+    setIsGenerating(true);
+    try {
+        let langForPrompt = selectedLanguage;
+        if (selectedLanguage === 'frontend') {
+            langForPrompt = activeTab;
+        }
+
+        const result = await generateCodeFromPrompt({ prompt: aiPrompt, language: langForPrompt });
+        
+        if (selectedLanguage === 'frontend') {
+            handleCodeChange(activeTab, result.code);
+        } else {
+            handleSingleFileChange(result.code);
+        }
+        
+        toast({ title: 'Code Generated', description: 'The AI has generated the code and placed it in the editor.' });
+        setAiPrompt('');
+        setIsAiGenerateOpen(false);
+    } catch (error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to generate code.' });
+    } finally {
+        setIsGenerating(false);
+    }
+};
+
   const handleDownload = () => {
     toast({ variant: 'destructive', title: 'Not Implemented', description: 'Download is not yet supported.' });
   };
@@ -316,29 +351,16 @@ export default function CodeEditor() {
             <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css' || selectedLanguage === 'javascript'}>
               <Play className="mr-2 h-4 w-4" /> Run
             </Button>
-            <Button onClick={handleDebugCode} disabled={isDebugging} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
               {isDebugging ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Debugging...</> : <><Bug className="mr-2 h-4 w-4" /> Debug</>}
             </Button>
+             <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
+            </Button>
             
-            <div className="md:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Actions</span></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={handleDownload} disabled><Download className="mr-2 h-4 w-4" /> Download</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={handleUploadClick} disabled><Upload className="mr-2 h-4 w-4" /> Upload</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="hidden md:flex flex-wrap gap-2">
+            <div className="ml-auto flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
               <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
-              <Button variant="outline" onClick={handleDownload} disabled><Download className="mr-2 h-4 w-4" /> Download</Button>
-              <Button variant="outline" onClick={handleUploadClick} disabled><Upload className="mr-2 h-4 w-4" /> Upload</Button>
             </div>
           </div>
         </Card>
@@ -429,6 +451,28 @@ export default function CodeEditor() {
           </DialogContent>
         </Dialog>
         
+        <Dialog open={isAiGenerateOpen} onOpenChange={setIsAiGenerateOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Generate Code with AI</DialogTitle>
+                    <DialogDescription>
+                        Describe the code you want to generate. Be as specific as possible. The generated code will replace the content in the currently active editor tab.
+                    </DialogDescription>
+                </DialogHeader>
+                <Textarea 
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="e.g., 'a login form with email and password fields' or 'a function that reverses a string'"
+                    rows={4}
+                />
+                <DialogFooter>
+                    <Button onClick={handleGenerateCode} disabled={isGenerating}>
+                        {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : "Generate"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         <AlertDialog open={isDebugAlertOpen} onOpenChange={setIsDebugAlertOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
