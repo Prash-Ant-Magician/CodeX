@@ -181,6 +181,52 @@ paragraph.style.color = "blue";`,
       },
     ],
   },
+    {
+    title: "C Programming",
+    lessons: [
+      {
+        title: "Introduction to C",
+        content: "C is a powerful, general-purpose programming language. It is a procedural language and requires a compiler to run. The 'main' function is the entry point of every C program.",
+        code: `#include <stdio.h>
+
+int main() {
+    printf("Hello, C!");
+    return 0;
+}`,
+      },
+      {
+        title: "Variables and Data Types",
+        content: "In C, variables must be declared with a specific data type. Common types include 'int' for integers, 'float' for floating-point numbers, and 'char' for single characters.",
+        code: `#include <stdio.h>
+
+int main() {
+    int age = 25;
+    float pi = 3.14;
+    char initial = 'J';
+
+    printf("Age: %d, Pi: %f, Initial: %c\\n", age, pi, initial);
+    return 0;
+}`,
+      },
+      {
+        title: "Pointers",
+        content: "A pointer is a variable that stores the memory address of another variable. They are a fundamental part of C and allow for direct memory manipulation. An asterisk (*) is used to declare a pointer.",
+        code: `#include <stdio.h>
+
+int main() {
+    int x = 10;
+    int *ptr = &x; // ptr stores the address of x
+
+    printf("Value of x: %d\\n", x);
+    printf("Address of x: %p\\n", (void *)&x);
+    printf("Pointer ptr points to: %p\\n", (void *)ptr);
+    printf("Value at the address ptr points to: %d\\n", *ptr);
+
+    return 0;
+}`,
+      },
+    ],
+  },
   {
     title: "React Essentials",
     lessons: [
@@ -296,3 +342,5 @@ export default function LearningModules() {
     </div>
   );
 }
+
+    

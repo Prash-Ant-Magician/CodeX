@@ -48,6 +48,37 @@ const playFailureSound = () => {
 };
 
 const challenges = [
+  // C Challenges
+  {
+    id: 'c-hello-world',
+    title: 'C: Hello, World!',
+    description: 'Write a C program that includes the `stdio.h` header and prints "Hello, C!" to the console.',
+    template: `#include <stdio.h>\n\nint main() {\n  // Your code here\n  return 0;\n}`,
+    language: 'c',
+    test: (code: string) => {
+      return code.includes('#include <stdio.h>') && code.includes('printf("Hello, C!");');
+    },
+  },
+  {
+    id: 'c-sum-variables',
+    title: 'C: Sum of Two Numbers',
+    description: 'Declare two integer variables, assign them values, and print their sum.',
+    template: `#include <stdio.h>\n\nint main() {\n  int a = 5;\n  int b = 10;\n  // Your code here to print the sum\n  return 0;\n}`,
+    language: 'c',
+    test: (code: string) => {
+      return /printf\(".*%d.*",\s*a\s*\+\s*b\s*\)/.test(code.replace(/\s/g, ''));
+    },
+  },
+  {
+    id: 'c-for-loop',
+    title: 'C: For Loop',
+    description: 'Write a C program that uses a `for` loop to print numbers from 1 to 5, each on a new line.',
+    template: `#include <stdio.h>\n\nint main() {\n  // Your for loop here\n  return 0;\n}`,
+    language: 'c',
+    test: (code: string) => {
+      return code.includes('for') && /for\s*\(.*int\s+i\s*=\s*1;.*i\s*<=\s*5;.*i\s*\+\+.*\)/.test(code.replace(/\s/g, ''));
+    },
+  },
   // JavaScript Challenges
   {
     id: 'sum-array',
@@ -405,5 +436,7 @@ export default function CodingChallenges() {
     </div>
   );
 }
+
+    
 
     
