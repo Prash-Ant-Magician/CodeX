@@ -160,8 +160,8 @@ export default function CodeEditor() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-[calc(100vh-8rem)]">
-      <Card className="flex flex-col">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:h-[calc(100vh-8rem)]">
+      <Card className="flex flex-col h-[60vh] md:h-full">
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Editor</CardTitle>
           <Select value={language} onValueChange={setLanguage}>
@@ -257,7 +257,7 @@ export default function CodeEditor() {
         </CardContent>
       </Card>
 
-      <Card className="flex flex-col">
+      <Card className="flex flex-col h-[60vh] md:h-full">
         <CardHeader>
           <CardTitle>Preview</CardTitle>
         </CardHeader>
@@ -277,7 +277,7 @@ export default function CodeEditor() {
             <AlertDialogTitle>AI Debugging Assistant</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <ScrollArea className="h-72 pr-4">
-                <pre className="whitespace-pre-wrap font-sans text-sm">{debugResult}</pre>
+                 <div className="whitespace-pre-wrap font-sans text-sm">{debugResult}</div>
               </ScrollArea>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -289,5 +289,3 @@ export default function CodeEditor() {
     </div>
   );
 }
-
-    

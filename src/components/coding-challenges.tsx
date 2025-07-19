@@ -204,7 +204,7 @@ export default function CodingChallenges() {
       <div className="flex items-center gap-4">
         <span className="text-sm font-medium">Select Challenge:</span>
         <Select value={activeChallengeId} onValueChange={handleChallengeChange}>
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger className="w-full sm:w-[250px]">
             <SelectValue placeholder="Select a challenge" />
           </SelectTrigger>
           <SelectContent>
