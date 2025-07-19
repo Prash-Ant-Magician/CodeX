@@ -76,7 +76,10 @@ export default function CodeEditor() {
   }, [code, language, updatePreview]);
 
   useEffect(() => {
-    setSnippets(getSnippets());
+    // Ensure this runs only on the client
+    if (typeof window !== 'undefined') {
+      setSnippets(getSnippets());
+    }
   }, []);
 
   const handleRunCode = () => {
@@ -105,11 +108,15 @@ export default function CodeEditor() {
       toast({ variant: 'destructive', title: 'Error', description: 'Snippet name cannot be empty.' });
       return;
     }
-    saveSnippet({ name: snippetName, language, code });
-    toast({ title: 'Success', description: 'Snippet saved successfully.' });
-    setSnippets(getSnippets());
-    setSnippetName('');
-    setIsSaveOpen(false);
+    const result = saveSnippet({ name: snippetName, language, code });
+    if (result) {
+      toast({ title: 'Success', description: 'Snippet saved successfully.' });
+      setSnippets(getSnippets());
+      setSnippetName('');
+      setIsSaveOpen(false);
+    } else {
+       toast({ variant: 'destructive', title: 'Error', description: 'Could not save snippet.' });
+    }
   };
 
   const handleLoadSnippet = (snippet: Snippet) => {
