@@ -3,14 +3,18 @@
 
 import { Code2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
 
-export function Logo({ onClick }: { onClick?: () => void }) {
+export function Logo({ onClick, className }: { onClick?: () => void, className?: string }) {
   return (
     <Button 
       variant="ghost" 
       onClick={onClick} 
-      className="flex items-center gap-2 justify-start w-full h-auto p-0 hover:bg-transparent"
-      aria-label="CodeLeap brand"
+      className={cn(
+        "flex items-center gap-2 justify-start w-full h-auto p-0 hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0",
+        className
+      )}
+      aria-label="Toggle Sidebar"
     >
       <Code2 className="h-7 w-7 text-primary shrink-0" />
       <h1 className="text-xl font-bold text-foreground font-headline group-data-[collapsible=icon]:hidden">CodeLeap</h1>
