@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  useSidebar,
+  SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -36,16 +36,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback';
-
-function HeaderLogo() {
-  const { state, isMobile } = useSidebar();
-
-  if (state === 'expanded' && !isMobile) {
-    return null;
-  }
-
-  return <Logo />;
-}
 
 function UserNav() {
   const { user } = useAuth();
@@ -176,8 +166,10 @@ export function MainLayout() {
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
-          <HeaderLogo />
-          <div className="flex items-center gap-4">
+           <div className="flex items-center gap-4">
+            <SidebarTrigger className="md:hidden" />
+          </div>
+          <div className="flex flex-1 items-center justify-end gap-4">
              <UserNav />
           </div>
         </header>
