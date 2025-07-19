@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback';
 
@@ -101,6 +102,23 @@ function SidebarHeaderContent() {
             <Logo onClick={toggleSidebar} />
         </SidebarHeader>
     );
+}
+
+function MainHeaderContent() {
+  const { state } = useSidebar();
+  return (
+     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:justify-end">
+      <div className="flex items-center gap-4 sm:hidden">
+        <SidebarTrigger />
+      </div>
+      <div className="hidden sm:flex items-center gap-4">
+        {state === 'collapsed' && <Logo isButton={false} className="hidden md:flex" />}
+      </div>
+      <div className="flex flex-1 items-center justify-end gap-4">
+          <UserNav />
+      </div>
+    </header>
+  );
 }
 
 export function MainLayout() {
@@ -171,14 +189,7 @@ export function MainLayout() {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:justify-end">
-           <div className="flex items-center gap-4 sm:hidden">
-            <SidebarTrigger />
-          </div>
-          <div className="flex flex-1 items-center justify-end gap-4">
-             <UserNav />
-          </div>
-        </header>
+        <MainHeaderContent />
         <div className="p-4 md:p-6">{renderContent()}</div>
       </SidebarInset>
       <Toaster />
