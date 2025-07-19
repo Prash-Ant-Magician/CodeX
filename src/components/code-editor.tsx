@@ -12,17 +12,21 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { saveSnippet, getSnippets, deleteSnippet, Snippet } from '@/lib/snippets';
 import { debugCode } from '@/ai/flows/debug-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal } from 'lucide-react';
+import { compileCode } from '@/ai/flows/compile-code';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, Terminal, XCircle, CheckCircle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 const languages = [
   { value: 'html', label: 'HTML' },
   { value: 'css', label: 'CSS' },
   { value: 'javascript', label: 'JavaScript' },
+  { value: 'c', label: 'C' },
 ];
 
-const defaultCode = `<!DOCTYPE html>
+const defaultCode: Record<string, string> = {
+  html: `<!DOCTYPE html>
 <html>
 <head>
   <style>
@@ -45,11 +49,24 @@ const defaultCode = `<!DOCTYPE html>
   <h1>Hello, CodeLeap!</h1>
 </body>
 </html>
-`;
+`,
+  css: `body {
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+  font-family: sans-serif;
+}`,
+  javascript: `console.log("Hello, CodeLeap!");`,
+  c: `#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\\n");
+    return 0;
+}`,
+};
 
 export default function CodeEditor() {
-  const [code, setCode] = useState(defaultCode);
   const [language, setLanguage] = useState('html');
+  const [code, setCode] = useState(defaultCode[language]);
   const [previewDoc, setPreviewDoc] = useState('');
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugResult, setDebugResult] = useState('');
@@ -60,31 +77,53 @@ export default function CodeEditor() {
   const [isLoadOpen, setIsLoadOpen] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCompiling, setIsCompiling] = useState(false);
+  const [compileOutput, setCompileOutput] = useState<{ output: string; success: boolean } | null>(null);
 
   const updatePreview = useCallback(() => {
-    const timeout = setTimeout(() => {
-      setPreviewDoc(code);
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, [code]);
-
-  useEffect(() => {
     if (language === 'html') {
-      const cleanup = updatePreview();
-      return cleanup;
+      const timeout = setTimeout(() => {
+        setPreviewDoc(code);
+      }, 500);
+      return () => clearTimeout(timeout);
     }
-  }, [code, language, updatePreview]);
+  }, [code, language]);
 
   useEffect(() => {
-    // Ensure this runs only on the client
+    setCode(defaultCode[language]);
+    setCompileOutput(null); // Reset output on language change
+  }, [language]);
+  
+  useEffect(() => {
+    const cleanup = updatePreview();
+    return cleanup;
+  }, [code, updatePreview]);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       setSnippets(getSnippets());
     }
   }, []);
 
-  const handleRunCode = () => {
-    updatePreview();
-    toast({ title: 'Code Executed', description: 'Preview has been updated.' });
+  const handleRunOrCompile = async () => {
+    if (language === 'c') {
+      setIsCompiling(true);
+      setCompileOutput(null);
+      try {
+        const result = await compileCode({ code });
+        setCompileOutput(result);
+        toast({ title: 'Compilation Finished' });
+      } catch (error) {
+        console.error(error);
+        setCompileOutput({ output: 'An unexpected error occurred during compilation.', success: false });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not compile code.' });
+      } finally {
+        setIsCompiling(false);
+      }
+    } else {
+      updatePreview();
+      toast({ title: 'Code Executed', description: 'Preview has been updated.' });
+    }
   };
 
   const handleDebugCode = async () => {
@@ -191,8 +230,22 @@ export default function CodeEditor() {
             placeholder="Write your code here..."
           />
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleRunCode} className="bg-primary hover:bg-primary/90">
-              <Play className="mr-2 h-4 w-4" /> Run
+            <Button onClick={handleRunOrCompile} disabled={isCompiling} className="bg-primary hover:bg-primary/90">
+              {isCompiling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Compiling...
+                </>
+              ) : (
+                language === 'c' ? (
+                  <>
+                    <Terminal className="mr-2 h-4 w-4" /> Compile
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" /> Run
+                  </>
+                )
+              )}
             </Button>
             <Button onClick={handleDebugCode} disabled={isDebugging} className="bg-accent hover:bg-accent/90 text-accent-foreground">
               {isDebugging ? (
@@ -286,7 +339,7 @@ export default function CodeEditor() {
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
-              accept=".html,.css,.js,.txt"
+              accept=".html,.css,.js,.txt,.c"
             />
           </div>
         </CardContent>
@@ -294,15 +347,34 @@ export default function CodeEditor() {
 
       <Card className="flex flex-col h-[60vh] md:h-full">
         <CardHeader>
-          <CardTitle>Preview</CardTitle>
+          <CardTitle>{language === 'c' ? 'Compiler Output' : 'Preview'}</CardTitle>
         </CardHeader>
         <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
-          <iframe
-            srcDoc={previewDoc}
-            title="Preview"
-            sandbox="allow-scripts"
-            className="w-full h-full border-0 bg-white"
-          />
+          {language === 'c' ? (
+            <div className="w-full h-full bg-black text-white font-code p-4 overflow-auto">
+              {compileOutput ? (
+                <div>
+                  <div className={cn("flex items-center gap-2 mb-4", compileOutput.success ? 'text-green-400' : 'text-red-400')}>
+                    {compileOutput.success ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                    <span className="font-bold text-lg">{compileOutput.success ? 'Success' : 'Failed'}</span>
+                  </div>
+                  <pre className="whitespace-pre-wrap">{compileOutput.output}</pre>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Terminal className="h-5 w-5" />
+                  <span>Awaiting compilation...</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <iframe
+              srcDoc={previewDoc}
+              title="Preview"
+              sandbox="allow-scripts"
+              className="w-full h-full border-0 bg-white"
+            />
+          )}
         </CardContent>
       </Card>
       
