@@ -47,6 +47,41 @@ const modules = [
   <input type="submit" value="Submit">
 </form>`,
       },
+      {
+        title: "Working with Lists",
+        content: "HTML offers two main types of lists: unordered lists (`<ul>`), which create bulleted lists, and ordered lists (`<ol>`), which create numbered lists. Each list item is defined with an `<li>` tag.",
+        code: `<h2>Favorite Fruits (Unordered)</h2>
+<ul>
+  <li>Apples</li>
+  <li>Bananas</li>
+  <li>Oranges</li>
+</ul>
+
+<h2>Top 3 Movies (Ordered)</h2>
+<ol>
+  <li>The Godfather</li>
+  <li>The Dark Knight</li>
+  <li>Pulp Fiction</li>
+</ol>`,
+      },
+      {
+        title: "Creating Tables",
+        content: "HTML tables allow you to arrange data into rows and columns. A table is defined with the `<table>` tag. `<tr>` defines a table row, `<th>` defines a table header, and `<td>` defines a table cell.",
+        code: `<table border="1">
+  <tr>
+    <th>Firstname</th>
+    <th>Lastname</th>
+  </tr>
+  <tr>
+    <td>Peter</td>
+    <td>Griffin</td>
+  </tr>
+  <tr>
+    <td>Lois</td>
+    <td>Griffin</td>
+  </tr>
+</table>`,
+      },
     ],
   },
   {
