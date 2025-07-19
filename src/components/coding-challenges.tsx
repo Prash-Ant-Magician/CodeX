@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -309,13 +309,27 @@ const challenges = [
   },
 ];
 
+const languageOptions = [
+  { value: 'c', label: 'C' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'html', label: 'HTML' },
+  { value: 'css', label: 'CSS' },
+];
+
 type TestResult = {
   status: 'success' | 'failure';
   message: string;
 } | null;
 
 export default function CodingChallenges() {
-  const [activeChallengeId, setActiveChallengeId] = useState(challenges[0].id);
+  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0].value);
+  
+  const filteredChallenges = useMemo(
+    () => challenges.filter((c) => c.language === selectedLanguage),
+    [selectedLanguage]
+  );
+  
+  const [activeChallengeId, setActiveChallengeId] = useState(filteredChallenges[0].id);
   const activeChallenge = challenges.find((c) => c.id === activeChallengeId)!;
   const [code, setCode] = useState(activeChallenge.template);
   const [testResult, setTestResult] = useState<TestResult>(null);
@@ -323,8 +337,18 @@ export default function CodingChallenges() {
   const [emojiBlast, setEmojiBlast] = useState<string | null>(null);
 
   useEffect(() => {
-    const newChallenge = challenges.find((c) => c.id === activeChallengeId)!;
-    setCode(newChallenge.template);
+    // When language changes, update the filtered list and reset the active challenge
+    const newFilteredChallenges = challenges.filter((c) => c.language === selectedLanguage);
+    if (newFilteredChallenges.length > 0) {
+      setActiveChallengeId(newFilteredChallenges[0].id);
+    }
+  }, [selectedLanguage]);
+
+  useEffect(() => {
+    const newChallenge = challenges.find((c) => c.id === activeChallengeId);
+    if (newChallenge) {
+      setCode(newChallenge.template);
+    }
     setTestResult(null);
   }, [activeChallengeId]);
 
@@ -335,6 +359,10 @@ export default function CodingChallenges() {
     }
   }, [emojiBlast]);
 
+  const handleLanguageChange = (lang: string) => {
+    setSelectedLanguage(lang);
+  };
+  
   const handleChallengeChange = (id: string) => {
     setActiveChallengeId(id);
   };
@@ -380,20 +408,37 @@ export default function CodingChallenges() {
         <h1 className="text-3xl font-bold font-headline">Coding Challenges</h1>
         <p className="text-muted-foreground">Test your skills with our coding challenges.</p>
       </div>
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium">Select Challenge:</span>
-        <Select value={activeChallengeId} onValueChange={handleChallengeChange}>
-          <SelectTrigger className="w-full sm:w-[250px]">
-            <SelectValue placeholder="Select a challenge" />
-          </SelectTrigger>
-          <SelectContent>
-            {challenges.map((challenge) => (
-              <SelectItem key={challenge.id} value={challenge.id}>
-                {challenge.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <span className="text-sm font-medium">Select Language:</span>
+           <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
+            <SelectTrigger className="w-full mt-1">
+              <SelectValue placeholder="Select a language" />
+            </SelectTrigger>
+            <SelectContent>
+              {languageOptions.map((lang) => (
+                <SelectItem key={lang.value} value={lang.value}>
+                  {lang.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <span className="text-sm font-medium">Select Challenge:</span>
+          <Select value={activeChallengeId} onValueChange={handleChallengeChange} disabled={!filteredChallenges.length}>
+            <SelectTrigger className="w-full mt-1">
+              <SelectValue placeholder="Select a challenge" />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredChallenges.map((challenge) => (
+                <SelectItem key={challenge.id} value={challenge.id}>
+                  {challenge.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Card>
@@ -436,7 +481,3 @@ export default function CodingChallenges() {
     </div>
   );
 }
-
-    
-
-    
