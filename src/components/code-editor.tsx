@@ -174,6 +174,7 @@ export default function CodeEditor() {
   
   const handleRun = () => {
     updatePreview();
+    setIsPreviewVisible(true);
     toast({ title: 'Code Executed', description: 'Preview has been updated.' });
   };
 
