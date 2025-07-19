@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2, Loader2, XCircle, Terminal } from 'lucide-react';
 
 const challenges = [
+  // JavaScript Challenges
   {
     id: 'sum-array',
     title: 'Sum of Array',
@@ -46,12 +47,77 @@ const challenges = [
     language: 'javascript',
   },
   {
+    id: 'remove-duplicates',
+    title: 'Remove Duplicates from Array',
+    description: 'Write a function that takes an array and returns a new array with duplicates removed.',
+    template: `function removeDuplicates(arr) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'factorial',
+    title: 'Factorial Finder',
+    description: 'Write a function that computes the factorial of a non-negative integer.',
+    template: `function factorial(n) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'fibonacci',
+    title: 'Fibonacci Sequence',
+    description: 'Write a function to generate the first n numbers in the Fibonacci sequence.',
+    template: `function fibonacci(n) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'longest-word',
+    title: 'Find Longest Word',
+    description: 'Write a function that takes a sentence and returns the longest word.',
+    template: `function findLongestWord(sentence) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'capitalize-words',
+    title: 'Capitalize Words',
+    description: 'Write a function that capitalizes the first letter of each word in a sentence.',
+    template: `function capitalizeWords(sentence) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  // HTML Challenges
+  {
     id: 'html-form',
     title: 'Simple HTML Form',
     description: 'Create an HTML form with a text input for a name, an email input, and a submit button.',
     template: `<!-- Your HTML form here -->`,
     language: 'html',
   },
+  {
+    id: 'html-list',
+    title: 'Create an Ordered List',
+    description: 'Create an ordered list in HTML with three list items: "First", "Second", "Third".',
+    template: `<!-- Your HTML list here -->`,
+    language: 'html',
+  },
+  {
+    id: 'html-table',
+    title: 'Create a Simple Table',
+    description: 'Create an HTML table with 2 columns ("Product", "Price") and 3 rows of data.',
+    template: `<!-- Your HTML table here -->`,
+    language: 'html',
+  },
+  {
+    id: 'html-image',
+    title: 'Add an Image',
+    description: 'Embed an image using the `<img>` tag. Use a placeholder URL like "https://placehold.co/200x100".',
+    template: `<!-- Your HTML image here -->`,
+    language: 'html',
+  },
+  {
+    id: 'html-semantic',
+    title: 'Semantic Page Layout',
+    description: 'Structure a basic webpage using semantic HTML5 tags: <header>, <nav>, <main>, and <footer>.',
+    template: `<!-- Your semantic layout here -->`,
+    language: 'html',
+  },
+  // CSS Challenges
   {
     id: 'css-button-style',
     title: 'Style a Button',
@@ -66,19 +132,33 @@ const challenges = [
     template: `.parent {\n  display: flex;\n  /* Your CSS here */\n}\n\n.child {\n  width: 100px;\n  height: 100px;\n}`,
     language: 'css',
   },
-   {
-    id: 'remove-duplicates',
-    title: 'Remove Duplicates from Array',
-    description: 'Write a function that takes an array and returns a new array with duplicates removed.',
-    template: `function removeDuplicates(arr) {\n  // Your code here\n}`,
-    language: 'javascript',
+  {
+    id: 'css-card',
+    title: 'Create a Card Component',
+    description: 'Style a div to look like a card with a border, padding, and a subtle box-shadow.',
+    template: `.card {\n  /* Your CSS here */\n}`,
+    language: 'css',
   },
   {
-    id: 'html-list',
-    title: 'Create an Ordered List',
-    description: 'Create an ordered list in HTML with three list items: "First", "Second", "Third".',
-    template: `<!-- Your HTML list here -->`,
-    language: 'html',
+    id: 'css-navbar',
+    title: 'Simple Navbar',
+    description: 'Style an unordered list to be a horizontal navigation bar with space between links.',
+    template: `nav ul {\n  display: flex;\n  list-style-type: none;\n  /* Your CSS here */\n}`,
+    language: 'css',
+  },
+  {
+    id: 'css-input-focus',
+    title: 'Style Input on Focus',
+    description: 'Change the border color of a text input when it is in the :focus state.',
+    template: `input:focus {\n  /* Your CSS here */\n}`,
+    language: 'css',
+  },
+  {
+    id: 'css-grid',
+    title: 'Simple 2-Column Grid',
+    description: 'Create a responsive 2-column grid layout using CSS Grid.',
+    template: `.grid-container {\n  display: grid;\n  /* Your CSS here */\n}`,
+    language: 'css',
   },
 ];
 
