@@ -55,7 +55,7 @@ function UserNav() {
 
   if (!user) {
     return (
-      <Button onClick={() => router.push('/login')}>
+       <Button onClick={() => router.push('/login')} variant="outline">
         Login
       </Button>
     );
@@ -107,13 +107,20 @@ function SidebarHeaderContent() {
 function MainHeaderContent() {
   const { state } = useSidebar();
   return (
-     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:justify-end">
-      <div className="flex items-center gap-4 sm:hidden">
-        <SidebarTrigger />
+     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+         {/* Mobile Trigger */}
+        <SidebarTrigger className="sm:hidden" />
+
+        {/* Desktop Trigger (visible when collapsed) */}
+        {state === 'collapsed' && (
+          <div className="hidden sm:flex items-center gap-2">
+            <SidebarTrigger />
+            <Logo isButton={false} />
+          </div>
+        )}
       </div>
-      <div className="hidden sm:flex items-center gap-4">
-        {state === 'collapsed' && <Logo isButton={false} className="hidden md:flex" />}
-      </div>
+
       <div className="flex flex-1 items-center justify-end gap-4">
           <UserNav />
       </div>
