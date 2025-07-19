@@ -32,7 +32,7 @@ import {
   signInWithPhoneNumber,
   type ConfirmationResult,
 } from "@/lib/firebase/auth";
-import { Code2, Loader2, Phone } from "lucide-react";
+import { Braces, Loader2, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth";
 
@@ -184,7 +184,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex items-center gap-2">
-            <Code2 className="h-8 w-8 text-primary" />
+            <Braces className="h-8 w-8 text-primary" />
             <CardTitle className="text-3xl font-bold">CodeLeap</CardTitle>
           </div>
           <CardDescription>
@@ -298,5 +298,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Code2 } from 'lucide-react';
+import { Braces } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +17,7 @@ export function Logo({ onClick, className }: { onClick?: () => void, className?:
       )}
       aria-label="Toggle Sidebar"
     >
-      <Code2 className="h-7 w-7 text-primary shrink-0" />
+      <Braces className="h-7 w-7 text-primary shrink-0" />
       <h1 className="text-xl font-bold text-foreground font-headline group-data-[collapsible=icon]/sidebar-wrapper:hidden">CodeLeap</h1>
     </Button>
   );
