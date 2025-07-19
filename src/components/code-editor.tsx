@@ -13,13 +13,14 @@ import { saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnip
 import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, HelpCircle, Sparkles } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, HelpCircle, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CCompiler from './c-compiler';
+import { cn } from '@/lib/utils';
 
 const defaultCodes = {
   frontend: {
@@ -104,6 +105,7 @@ export default function CodeEditor() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -312,7 +314,10 @@ export default function CodeEditor() {
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:h-[calc(100vh-10rem)]">
+      <div className={cn(
+          "grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]",
+          isPreviewVisible && "md:grid-cols-2"
+        )}>
         <Card className="flex flex-col h-[60vh] md:h-full">
           {selectedLanguage === 'frontend' ? (
             <Tabs<string> defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
@@ -366,15 +371,37 @@ export default function CodeEditor() {
             </div>
           </div>
         </Card>
+        
+        {isPreviewVisible && (
+            <Card className="flex flex-col h-[60vh] md:h-full">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Preview</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(false)}>
+                    <ChevronDown className="h-4 w-4" />
+                </Button>
+            </CardHeader>
+            <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
+                <iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" />
+            </CardContent>
+            </Card>
+        )}
 
-        <Card className="flex flex-col h-[60vh] md:h-full">
-          <CardHeader>
-            <CardTitle>Preview</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
-            <iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" />
-          </CardContent>
-        </Card>
+        {!isPreviewVisible && (
+            <div className="absolute top-0 right-4">
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}>
+                                <ChevronUp className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Show Preview</p>
+                        </TooltipContent>
+                    </Tooltip>
+                 </TooltipProvider>
+            </div>
+        )}
       </div>
     );
   };
@@ -490,3 +517,5 @@ export default function CodeEditor() {
     </div>
   );
 }
+
+    
