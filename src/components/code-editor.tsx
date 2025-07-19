@@ -275,7 +275,7 @@ export default function CodeEditor() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>AI Debugging Assistant</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription asChild>
               <ScrollArea className="h-72 pr-4">
                 <pre className="whitespace-pre-wrap font-sans text-sm">{debugResult}</pre>
               </ScrollArea>
@@ -289,3 +289,5 @@ export default function CodeEditor() {
     </div>
   );
 }
+
+    
