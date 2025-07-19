@@ -198,6 +198,38 @@ export default function CodeEditor() {
                 </>
               )}
             </Button>
+            
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setIsSaveOpen(true)}>
+                    <Save className="mr-2 h-4 w-4" /> Save
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setIsLoadOpen(true)}>
+                    <FolderOpen className="mr-2 h-4 w-4" /> Load
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleDownload}>
+                    <Download className="mr-2 h-4 w-4" /> Download
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleUploadClick}>
+                    <Upload className="mr-2 h-4 w-4" /> Upload
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="hidden md:flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
+                <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
+                <Button variant="outline" onClick={handleDownload}><Download className="mr-2 h-4 w-4" /> Download</Button>
+                <Button variant="outline" onClick={handleUploadClick}><Upload className="mr-2 h-4 w-4" /> Upload</Button>
+            </div>
 
             <Dialog open={isSaveOpen} onOpenChange={setIsSaveOpen}>
               <DialogContent>
@@ -241,36 +273,6 @@ export default function CodeEditor() {
                 </ScrollArea>
               </DialogContent>
             </Dialog>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="md:hidden">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Actions</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setIsSaveOpen(true)}>
-                  <Save className="mr-2 h-4 w-4" /> Save
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setIsLoadOpen(true)}>
-                  <FolderOpen className="mr-2 h-4 w-4" /> Load
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleDownload}>
-                  <Download className="mr-2 h-4 w-4" /> Download
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleUploadClick}>
-                  <Upload className="mr-2 h-4 w-4" /> Upload
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className="hidden md:flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
-                <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
-                <Button variant="outline" onClick={handleDownload}><Download className="mr-2 h-4 w-4" /> Download</Button>
-                <Button variant="outline" onClick={handleUploadClick}><Upload className="mr-2 h-4 w-4" /> Upload</Button>
-            </div>
             
             <input
               type="file"
