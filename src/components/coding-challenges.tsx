@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -22,6 +23,62 @@ const challenges = [
     description: 'Write a function that takes a string and returns it in reverse.',
     template: `function reverseString(str) {\n  // Your code here\n}`,
     language: 'javascript',
+  },
+  {
+    id: 'palindrome',
+    title: 'Palindrome Checker',
+    description: 'Write a function that checks if a given string is a palindrome (reads the same forwards and backward).',
+    template: `function isPalindrome(str) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'fizzbuzz',
+    title: 'FizzBuzz',
+    description: 'Write a function that prints numbers from 1 to 100. For multiples of 3, print "Fizz". For multiples of 5, print "Buzz". For multiples of both 3 and 5, print "FizzBuzz".',
+    template: `function fizzBuzz() {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'max-number',
+    title: 'Find Max Number',
+    description: 'Write a function that takes an array of numbers and returns the largest number.',
+    template: `function findMax(arr) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'html-form',
+    title: 'Simple HTML Form',
+    description: 'Create an HTML form with a text input for a name, an email input, and a submit button.',
+    template: `<!-- Your HTML form here -->`,
+    language: 'html',
+  },
+  {
+    id: 'css-button-style',
+    title: 'Style a Button',
+    description: 'Write CSS to style a button with a blue background, white text, and a light-blue background on hover.',
+    template: `button {\n  /* Your CSS here */\n}`,
+    language: 'css',
+  },
+  {
+    id: 'center-div',
+    title: 'Center a Div',
+    description: 'Write CSS using Flexbox to center a div both horizontally and vertically inside its parent container.',
+    template: `.parent {\n  display: flex;\n  /* Your CSS here */\n}\n\n.child {\n  width: 100px;\n  height: 100px;\n}`,
+    language: 'css',
+  },
+   {
+    id: 'remove-duplicates',
+    title: 'Remove Duplicates from Array',
+    description: 'Write a function that takes an array and returns a new array with duplicates removed.',
+    template: `function removeDuplicates(arr) {\n  // Your code here\n}`,
+    language: 'javascript',
+  },
+  {
+    id: 'html-list',
+    title: 'Create an Ordered List',
+    description: 'Create an ordered list in HTML with three list items: "First", "Second", "Third".',
+    template: `<!-- Your HTML list here -->`,
+    language: 'html',
   },
 ];
 
