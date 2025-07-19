@@ -10,14 +10,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { saveSnippet, getSnippets, deleteSnippet, Snippet } from '@/lib/snippets';
+import { saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnippets, deleteLocalSnippet, Snippet, SnippetData } from '@/lib/snippets';
+import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { compileCode, type CompileCodeOutput } from '@/ai/flows/compile-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, Terminal, XCircle, CheckCircle } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, Terminal, XCircle, CheckCircle, HelpCircle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const languages = [
   { value: 'html', label: 'HTML' },
@@ -76,10 +78,13 @@ export default function CodeEditor() {
   const [snippetName, setSnippetName] = useState('');
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [isLoadOpen, setIsLoadOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCompiling, setIsCompiling] = useState(false);
   const [compileOutput, setCompileOutput] = useState<CompileCodeOutput | null>(null);
+  const { user } = useAuth();
+
 
   const updatePreview = useCallback(() => {
     if (language === 'html') {
@@ -90,6 +95,28 @@ export default function CodeEditor() {
     }
   }, [code, language]);
 
+  const fetchSnippets = useCallback(async () => {
+    setIsActionLoading(true);
+    try {
+      if (user) {
+        const firestoreSnippets = await getSnippets(user.uid);
+        setSnippets(firestoreSnippets);
+      } else {
+        setSnippets(getLocalSnippets());
+      }
+    } catch (error) {
+      console.error("Failed to fetch snippets:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load your snippets.' });
+    } finally {
+      setIsActionLoading(false);
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
+    fetchSnippets();
+  }, [fetchSnippets]);
+
+
   useEffect(() => {
     setCode(defaultCode[language]);
     setCompileOutput(null); // Reset output on language change
@@ -99,12 +126,6 @@ export default function CodeEditor() {
     const cleanup = updatePreview();
     return cleanup;
   }, [code, updatePreview]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setSnippets(getSnippets());
-    }
-  }, []);
 
   const handleRunOrCompile = async () => {
     if (language === 'c') {
@@ -144,19 +165,29 @@ export default function CodeEditor() {
     }
   };
 
-  const handleSaveSnippet = () => {
+  const handleSaveSnippet = async () => {
     if (!snippetName) {
       toast({ variant: 'destructive', title: 'Error', description: 'Snippet name cannot be empty.' });
       return;
     }
-    const result = saveSnippet({ name: snippetName, language, code });
-    if (result) {
+    
+    setIsActionLoading(true);
+    const snippetData: SnippetData = { name: snippetName, language, code };
+
+    try {
+      if (user) {
+        await saveSnippet(user.uid, snippetData);
+      } else {
+        saveLocalSnippet(snippetData);
+      }
       toast({ title: 'Success', description: 'Snippet saved successfully.' });
-      setSnippets(getSnippets());
+      await fetchSnippets(); // Refresh list
       setSnippetName('');
       setIsSaveOpen(false);
-    } else {
+    } catch (error) {
        toast({ variant: 'destructive', title: 'Error', description: 'Could not save snippet.' });
+    } finally {
+        setIsActionLoading(false);
     }
   };
 
@@ -167,10 +198,21 @@ export default function CodeEditor() {
     setIsLoadOpen(false);
   };
   
-  const handleDeleteSnippet = (id: string) => {
-    deleteSnippet(id);
-    setSnippets(getSnippets());
-    toast({ title: 'Snippet Deleted', description: 'The snippet has been removed.' });
+  const handleDeleteSnippet = async (id: string) => {
+    setIsActionLoading(true);
+    try {
+        if (user) {
+            await deleteSnippet(user.uid, id);
+        } else {
+            deleteLocalSnippet(id);
+        }
+        toast({ title: 'Snippet Deleted', description: 'The snippet has been removed.' });
+        await fetchSnippets(); // Refresh list
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not delete snippet.' });
+    } finally {
+        setIsActionLoading(false);
+    }
   }
 
   const handleDownload = () => {
@@ -298,13 +340,29 @@ export default function CodeEditor() {
                 <DialogHeader>
                   <DialogTitle>Save Snippet</DialogTitle>
                 </DialogHeader>
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Snippets are saved to your account if logged in, or to this browser otherwise.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                    <span>Saving as {user ? 'user' : 'guest'}</span>
+                </div>
                 <Input
                   value={snippetName}
                   onChange={(e) => setSnippetName(e.target.value)}
                   placeholder="Enter snippet name"
                 />
                 <DialogFooter>
-                  <Button onClick={handleSaveSnippet}>Save</Button>
+                  <Button onClick={handleSaveSnippet} disabled={isActionLoading}>
+                    {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -314,17 +372,25 @@ export default function CodeEditor() {
                 <DialogHeader>
                   <DialogTitle>Load Snippet</DialogTitle>
                 </DialogHeader>
+                 <div className="text-sm text-muted-foreground flex items-center gap-2">
+                   <span>Showing snippets for {user ? 'user' : 'guest'}</span>
+                </div>
                 <ScrollArea className="h-72">
+                  {isActionLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
                   <div className="flex flex-col gap-2 pr-4">
                     {snippets.length > 0 ? (
                       snippets.map((s) => (
                         <div key={s.id} className="group flex items-center justify-between rounded-md border p-3 hover:bg-muted/50">
                           <button onClick={() => handleLoadSnippet(s)} className="text-left flex-1">
                             <p className="font-semibold">{s.name}</p>
-                            <p className="text-sm text-muted-foreground">{s.language} - {new Date(s.createdAt).toLocaleDateString()}</p>
+                            <p className="text-sm text-muted-foreground">{s.language} - {new Date(s.createdAt as string).toLocaleDateString()}</p>
                           </button>
-                           <Button variant="ghost" size="icon" className="text-muted-foreground opacity-0 group-hover:opacity-100" onClick={() => handleDeleteSnippet(s.id)}>
-                            <Trash2 className="h-4 w-4" />
+                           <Button variant="ghost" size="icon" className="text-muted-foreground opacity-0 group-hover:opacity-100" onClick={() => handleDeleteSnippet(s.id)} disabled={isActionLoading}>
+                            {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
                           </Button>
                         </div>
                       ))
@@ -332,6 +398,7 @@ export default function CodeEditor() {
                       <p className="text-muted-foreground text-center py-8">No saved snippets.</p>
                     )}
                   </div>
+                  )}
                 </ScrollArea>
               </DialogContent>
             </Dialog>
