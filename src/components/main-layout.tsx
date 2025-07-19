@@ -11,7 +11,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback';
 
@@ -105,19 +104,15 @@ function SidebarHeaderContent() {
 }
 
 function MainHeaderContent() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   return (
-     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm">
+     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-         {/* Mobile Trigger */}
         <SidebarTrigger className="sm:hidden" />
-
-        {/* Desktop Trigger (visible when collapsed) */}
         {state === 'collapsed' && (
-          <div className="hidden sm:flex items-center gap-2">
-            <SidebarTrigger />
-            <Logo isButton={false} />
-          </div>
+           <div className="hidden sm:flex">
+             <Logo onClick={toggleSidebar} />
+           </div>
         )}
       </div>
 

@@ -5,23 +5,20 @@ import { Code2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
-export function Logo({ onClick, className, isButton = true }: { onClick?: () => void, className?: string, isButton?: boolean }) {
-  const Comp = isButton ? Button : 'div';
-  const props = isButton ? { variant: "ghost", onClick } : {};
+export function Logo({ onClick, className }: { onClick?: () => void, className?: string }) {
 
   return (
-    <Comp 
-      {...props}
+    <Button 
+      variant="ghost" 
+      onClick={onClick}
       className={cn(
-        "flex items-center gap-2 justify-start w-full h-auto p-0 focus-visible:ring-0 focus-visible:ring-offset-0",
-        isButton && "hover:bg-transparent",
+        "flex items-center gap-2 justify-start w-full h-auto p-0 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent",
         className
       )}
-      aria-label={isButton ? "Toggle Sidebar" : "CodeLeap Logo"}
+      aria-label="Toggle Sidebar"
     >
       <Code2 className="h-7 w-7 text-primary shrink-0" />
-      <h1 className="text-xl font-bold text-foreground font-headline group-data-[collapsible=icon]:hidden">{isButton ? 'CodeLeap' : ''}</h1>
-       {!isButton && <h1 className="text-xl font-bold text-foreground font-headline">CodeLeap</h1>}
-    </Comp>
+      <h1 className="text-xl font-bold text-foreground font-headline group-data-[collapsible=icon]/sidebar-wrapper:hidden">CodeLeap</h1>
+    </Button>
   );
 }
