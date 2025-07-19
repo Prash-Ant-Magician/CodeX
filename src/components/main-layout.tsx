@@ -13,7 +13,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
-  SidebarToggle,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Code, BookOpen, Trophy, MessageSquare, LogOut } from 'lucide-react';
@@ -95,6 +95,14 @@ function UserNav() {
   );
 }
 
+function SidebarHeaderContent() {
+    const { toggleSidebar } = useSidebar();
+    return (
+        <SidebarHeader>
+            <Logo onClick={toggleSidebar} />
+        </SidebarHeader>
+    );
+}
 
 export function MainLayout() {
   const [activeView, setActiveView] = useState<ActiveView>('editor');
@@ -117,9 +125,7 @@ export function MainLayout() {
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
-          <Logo />
-        </SidebarHeader>
+        <SidebarHeaderContent />
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -165,7 +171,7 @@ export function MainLayout() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <SidebarToggle />
+          {/* Removed SidebarToggle from here */}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
