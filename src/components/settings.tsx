@@ -1,14 +1,16 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTheme } from 'next-themes';
+import { Switch } from '@/components/ui/switch';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(false);
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,6 +50,31 @@ export default function SettingsPage() {
                   System
                 </Label>
               </RadioGroup>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Editor</CardTitle>
+          <CardDescription>Manage settings related to the code editor.</CardDescription>
+        </CardHeader>
+        <CardContent>
+           <div className="grid gap-4">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="ai-suggestions" className="text-base">AI Code Suggestions</Label>
+                <p className="text-sm text-muted-foreground">
+                    Enable or disable AI-powered autocomplete and suggestions while you code.
+                </p>
+              </div>
+               <Switch
+                id="ai-suggestions"
+                checked={isAiSuggestionsEnabled}
+                onCheckedChange={setIsAiSuggestionsEnabled}
+                aria-label="Toggle AI code suggestions"
+              />
             </div>
           </div>
         </CardContent>
