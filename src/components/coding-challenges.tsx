@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, Loader2, XCircle, Terminal } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 
 const challenges = [
   // JavaScript Challenges
@@ -173,6 +173,14 @@ export default function CodingChallenges() {
   const [code, setCode] = useState(activeChallenge.template);
   const [testResult, setTestResult] = useState<TestResult>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [emojiBlast, setEmojiBlast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (emojiBlast) {
+      const timer = setTimeout(() => setEmojiBlast(null), 2000); // Emoji disappears after 2 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [emojiBlast]);
 
   const handleChallengeChange = (id: string) => {
     const newChallenge = challenges.find((c) => c.id === id)!;
@@ -184,19 +192,29 @@ export default function CodingChallenges() {
   const handleRunTests = () => {
     setIsRunning(true);
     setTestResult(null);
+    setEmojiBlast(null);
     setTimeout(() => {
       const success = Math.random() > 0.5;
       if (success) {
         setTestResult({ status: 'success', message: 'All tests passed! Great job!' });
+        setEmojiBlast('😊');
       } else {
         setTestResult({ status: 'failure', message: 'Test failed. Hint: Check for edge cases.' });
+        setEmojiBlast('😢');
       }
       setIsRunning(false);
     }, 1500);
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 relative">
+      {emojiBlast && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm animate-in fade-in">
+          <div className="text-8xl animate-in zoom-in-50 fade-in duration-500">
+            {emojiBlast}
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold font-headline">Coding Challenges</h1>
         <p className="text-muted-foreground">Test your skills with our coding challenges.</p>
