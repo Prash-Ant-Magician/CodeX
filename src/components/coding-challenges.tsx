@@ -9,6 +9,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 
+const playSuccessSound = () => {
+  if (typeof window !== 'undefined' && window.AudioContext) {
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  }
+};
+
+const playFailureSound = () => {
+  if (typeof window !== 'undefined' && window.AudioContext) {
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  }
+};
+
 const challenges = [
   // JavaScript Challenges
   {
@@ -281,14 +319,17 @@ export default function CodingChallenges() {
         if (success) {
           setTestResult({ status: 'success', message: 'All tests passed! Great job!' });
           setEmojiBlast('😊');
+          playSuccessSound();
         } else {
           setTestResult({ status: 'failure', message: 'Test failed. Hint: Check for edge cases and syntax.' });
           setEmojiBlast('😢');
+          playFailureSound();
         }
       } catch (error: any) {
         console.error("Test execution error:", error);
         setTestResult({ status: 'failure', message: `An error occurred: ${error.message}` });
         setEmojiBlast('😢');
+        playFailureSound();
       } finally {
         setIsRunning(false);
       }
