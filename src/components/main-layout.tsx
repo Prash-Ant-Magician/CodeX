@@ -13,9 +13,10 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
+  SidebarToggle,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy, MessageSquare, LogOut, Loader2 } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare, LogOut } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
@@ -97,8 +98,6 @@ function UserNav() {
 
 export function MainLayout() {
   const [activeView, setActiveView] = useState<ActiveView>('editor');
-  const { user, loading } = useAuth();
-  const router = useRouter();
 
   const renderContent = () => {
     switch (activeView) {
@@ -165,6 +164,9 @@ export function MainLayout() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+          <SidebarToggle />
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:justify-end">
