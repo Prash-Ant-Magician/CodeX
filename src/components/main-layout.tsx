@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -80,11 +81,8 @@ export function MainLayout() {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
-          <div className="md:hidden">
-            <Logo />
-          </div>
-          <SidebarTrigger className="md:hidden" />
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
+          <Logo />
         </header>
         <div className="p-4 md:p-6">{renderContent()}</div>
       </SidebarInset>
