@@ -347,18 +347,20 @@ export default function CodeEditor() {
             </>
           )}
 
-          <div className="p-6 pt-0 flex flex-wrap gap-2">
-            <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css' || selectedLanguage === 'javascript'}>
-              <Play className="mr-2 h-4 w-4" /> Run
-            </Button>
-            <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
-              {isDebugging ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Debugging...</> : <><Bug className="mr-2 h-4 w-4" /> Debug</>}
-            </Button>
-             <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
-            </Button>
+          <div className="p-6 pt-0 flex flex-wrap gap-2 justify-between">
+            <div className="flex flex-wrap gap-2">
+                <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css' || selectedLanguage === 'javascript'}>
+                  <Play className="mr-2 h-4 w-4" /> Run
+                </Button>
+                <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
+                  {isDebugging ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Debugging...</> : <><Bug className="mr-2 h-4 w-4" /> Debug</>}
+                </Button>
+                 <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                    <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
+                </Button>
+            </div>
             
-            <div className="ml-auto flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
               <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
             </div>
