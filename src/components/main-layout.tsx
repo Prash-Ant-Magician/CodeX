@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Code, BookOpen, Trophy } from 'lucide-react';
@@ -22,6 +23,16 @@ import CodingChallenges from '@/components/coding-challenges';
 import { Toaster } from './ui/toaster';
 
 type ActiveView = 'editor' | 'learn' | 'challenges';
+
+function HeaderLogo() {
+  const { state, isMobile } = useSidebar();
+
+  if (state === 'expanded' && !isMobile) {
+    return null;
+  }
+
+  return <Logo />;
+}
 
 export function MainLayout() {
   const [activeView, setActiveView] = useState<ActiveView>('editor');
@@ -82,7 +93,7 @@ export function MainLayout() {
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
-          <Logo />
+          <HeaderLogo />
         </header>
         <div className="p-4 md:p-6">{renderContent()}</div>
       </SidebarInset>
