@@ -14,12 +14,13 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy, MessageSquare, LogOut } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
 import CodingChallenges from '@/components/coding-challenges';
 import FeedbackForm from '@/components/feedback-form';
+import SettingsPage from '@/components/settings';
 import { Toaster } from './ui/toaster';
 import { useAuth, signOut } from '@/lib/firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -35,7 +36,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
-type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback';
+type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings';
 
 function UserNav() {
   const { user } = useAuth();
@@ -108,11 +109,15 @@ function MainHeaderContent() {
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="sm:hidden" />
-        {state === 'collapsed' && (
-           <div className="hidden sm:flex">
-             <Logo onClick={toggleSidebar} />
+        {state === 'collapsed' ? (
+           <div className="flex items-center gap-2">
+            <SidebarTrigger className="sm:hidden" />
+            <div className="hidden sm:flex">
+               <Logo onClick={toggleSidebar} />
+            </div>
            </div>
+        ) : (
+          <SidebarTrigger className="sm:hidden" />
         )}
       </div>
 
@@ -136,6 +141,8 @@ export function MainLayout() {
         return <CodingChallenges />;
       case 'feedback':
         return <FeedbackForm />;
+      case 'settings':
+        return <SettingsPage />;
       default:
         return <CodeEditor />;
     }
@@ -185,6 +192,16 @@ export function MainLayout() {
               >
                 <MessageSquare />
                 <span>Feedback</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView('settings')}
+                isActive={activeView === 'settings'}
+                tooltip="Settings"
+              >
+                <Settings />
+                <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
