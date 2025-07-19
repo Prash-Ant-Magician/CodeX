@@ -15,14 +15,15 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
 import CodingChallenges from '@/components/coding-challenges';
+import FeedbackForm from '@/components/feedback-form';
 import { Toaster } from './ui/toaster';
 
-type ActiveView = 'editor' | 'learn' | 'challenges';
+type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback';
 
 function HeaderLogo() {
   const { state, isMobile } = useSidebar();
@@ -45,6 +46,8 @@ export function MainLayout() {
         return <LearningModules />;
       case 'challenges':
         return <CodingChallenges />;
+      case 'feedback':
+        return <FeedbackForm />;
       default:
         return <CodeEditor />;
     }
@@ -86,6 +89,16 @@ export function MainLayout() {
               >
                 <Trophy />
                 <span>Challenges</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView('feedback')}
+                isActive={activeView === 'feedback'}
+                tooltip="Feedback"
+              >
+                <MessageSquare />
+                <span>Feedback</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

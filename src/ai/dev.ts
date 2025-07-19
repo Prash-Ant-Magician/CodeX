@@ -3,3 +3,4 @@ config();
 
 import '@/ai/flows/generate-code-snippet.ts';
 import '@/ai/flows/debug-code.ts';
+import '@/ai/flows/submit-feedback.ts';
