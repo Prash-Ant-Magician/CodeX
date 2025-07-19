@@ -20,9 +20,10 @@ const SubmitFeedbackInputSchema = z.object({
 export type SubmitFeedbackInput = z.infer<typeof SubmitFeedbackInputSchema>;
 
 const SubmitFeedbackOutputSchema = z.object({
-  thankYouMessage: z
+  success: z.boolean().describe('Whether the feedback was processed successfully.'),
+  message: z
     .string()
-    .describe('A thank you message to the user.'),
+    .describe('A message to the user.'),
 });
 export type SubmitFeedbackOutput = z.infer<typeof SubmitFeedbackOutputSchema>;
 
@@ -52,7 +53,7 @@ const submitFeedbackFlow = ai.defineFlow(
     });
 
     const mailOptions = {
-      from: `"CodeLeap Feedback" <${process.env.EMAIL_USER}>`,
+      from: `"CodeLeap Feedback" <${process.env.EMAIL_USER || 'noreply@example.com'}>`,
       to: 'prashantjha843319@gmail.com', // Developer's email address
       subject: 'New Feedback from CodeLeap User',
       html: `
@@ -68,14 +69,17 @@ const submitFeedbackFlow = ai.defineFlow(
     try {
       await transporter.sendMail(mailOptions);
       console.log('Feedback email sent successfully.');
+      return {
+        success: true,
+        message: `Thank you for your feedback, ${input.name || 'friend'}! We appreciate you helping us improve CodeLeap.`,
+      };
     } catch (error) {
       console.error('Error sending feedback email:', error);
-      // We still want to return a nice message to the user even if email fails.
-      // In a production app, you might want to handle this error more robustly.
+      // Return a failure message. This helps in debugging email configuration.
+      return {
+        success: false,
+        message: 'Could not send feedback email. Please check server configuration.',
+      };
     }
-
-    return {
-      thankYouMessage: `Thank you for your feedback, ${input.name || 'friend'}! We appreciate you helping us improve CodeLeap.`,
-    };
   }
 );

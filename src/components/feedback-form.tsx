@@ -45,11 +45,19 @@ export default function FeedbackForm() {
     setIsSubmitting(true);
     try {
       const result = await submitFeedback(values);
-      toast({
-        title: "Feedback Submitted!",
-        description: result.thankYouMessage,
-      });
-      form.reset();
+      if (result.success) {
+        toast({
+          title: "Feedback Submitted!",
+          description: result.message,
+        });
+        form.reset();
+      } else {
+         toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: result.message,
+        });
+      }
     } catch (error) {
       console.error("Feedback submission error:", error);
       toast({
