@@ -12,11 +12,12 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { saveSnippet, getSnippets, deleteSnippet, Snippet } from '@/lib/snippets';
 import { debugCode } from '@/ai/flows/debug-code';
-import { compileCode } from '@/ai/flows/compile-code';
+import { compileCode, type CompileCodeOutput } from '@/ai/flows/compile-code';
 import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, Terminal, XCircle, CheckCircle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { Separator } from './ui/separator';
 
 const languages = [
   { value: 'html', label: 'HTML' },
@@ -78,7 +79,7 @@ export default function CodeEditor() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCompiling, setIsCompiling] = useState(false);
-  const [compileOutput, setCompileOutput] = useState<{ output: string; success: boolean } | null>(null);
+  const [compileOutput, setCompileOutput] = useState<CompileCodeOutput | null>(null);
 
   const updatePreview = useCallback(() => {
     if (language === 'html') {
@@ -115,7 +116,8 @@ export default function CodeEditor() {
         toast({ title: 'Compilation Finished' });
       } catch (error) {
         console.error(error);
-        setCompileOutput({ output: 'An unexpected error occurred during compilation.', success: false });
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during compilation.';
+        setCompileOutput({ compilationOutput: errorMessage, success: false });
         toast({ variant: 'destructive', title: 'Error', description: 'Could not compile code.' });
       } finally {
         setIsCompiling(false);
@@ -238,7 +240,7 @@ export default function CodeEditor() {
               ) : (
                 language === 'c' ? (
                   <>
-                    <Terminal className="mr-2 h-4 w-4" /> Compile
+                    <Terminal className="mr-2 h-4 w-4" /> Compile & Run
                   </>
                 ) : (
                   <>
@@ -347,18 +349,37 @@ export default function CodeEditor() {
 
       <Card className="flex flex-col h-[60vh] md:h-full">
         <CardHeader>
-          <CardTitle>{language === 'c' ? 'Compiler Output' : 'Preview'}</CardTitle>
+          <CardTitle>{language === 'c' ? 'Output Terminal' : 'Preview'}</CardTitle>
         </CardHeader>
         <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
           {language === 'c' ? (
-            <div className="w-full h-full bg-black text-white font-code p-4 overflow-auto">
-              {compileOutput ? (
-                <div>
-                  <div className={cn("flex items-center gap-2 mb-4", compileOutput.success ? 'text-green-400' : 'text-red-400')}>
-                    {compileOutput.success ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
-                    <span className="font-bold text-lg">{compileOutput.success ? 'Success' : 'Failed'}</span>
+            <ScrollArea className="w-full h-full bg-black text-white font-code p-4">
+              {isCompiling ? (
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Compiling...</span>
+                </div>
+              ) : compileOutput ? (
+                <div className="space-y-4">
+                   <div>
+                    <div className={cn("flex items-center gap-2 mb-2", compileOutput.success ? 'text-green-400' : 'text-red-400')}>
+                      {compileOutput.success ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                      <span className="font-bold text-lg">Compilation {compileOutput.success ? 'Success' : 'Failed'}</span>
+                    </div>
+                    <pre className="whitespace-pre-wrap text-sm">{compileOutput.compilationOutput}</pre>
                   </div>
-                  <pre className="whitespace-pre-wrap">{compileOutput.output}</pre>
+
+                  {compileOutput.success && compileOutput.executionOutput && (
+                    <div>
+                      <Separator className="my-4 bg-gray-600" />
+                       <div className="flex items-center gap-2 mb-2 text-cyan-400">
+                        <Terminal className="h-5 w-5" />
+                        <span className="font-bold text-lg">Execution Output</span>
+                      </div>
+                      <pre className="whitespace-pre-wrap text-sm">{compileOutput.executionOutput}</pre>
+                    </div>
+                  )}
+
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-gray-500">
@@ -366,7 +387,7 @@ export default function CodeEditor() {
                   <span>Awaiting compilation...</span>
                 </div>
               )}
-            </div>
+            </ScrollArea>
           ) : (
             <iframe
               srcDoc={previewDoc}
