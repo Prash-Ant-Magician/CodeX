@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview A flow for submitting user feedback.
+ * @fileOverview A flow for submitting user feedback and sending it via email.
  *
  * - submitFeedback - A function that handles submitting feedback.
  * - SubmitFeedbackInput - The input type for the submitFeedback function.
@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import nodemailer from 'nodemailer';
 
 const SubmitFeedbackInputSchema = z.object({
   name: z.string().optional().describe('The name of the user giving feedback.'),
@@ -37,7 +38,42 @@ const submitFeedbackFlow = ai.defineFlow(
   },
   async (input) => {
     console.log('Feedback received:', input);
-    // In a real application, you would save this feedback to a database.
+    
+    // Setup Nodemailer transporter
+    // IMPORTANT: You must configure these environment variables in a .env.local file
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT),
+      secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"CodeLeap Feedback" <${process.env.EMAIL_USER}>`,
+      to: 'prashantjha843319@gmail.com', // Developer's email address
+      subject: 'New Feedback from CodeLeap User',
+      html: `
+        <h1>New Feedback Submission</h1>
+        <p><strong>Name:</strong> ${input.name || 'Not provided'}</p>
+        <p><strong>Email:</strong> ${input.email || 'Not provided'}</p>
+        <hr>
+        <h2>Feedback:</h2>
+        <p>${input.feedback}</p>
+      `,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log('Feedback email sent successfully.');
+    } catch (error) {
+      console.error('Error sending feedback email:', error);
+      // We still want to return a nice message to the user even if email fails.
+      // In a production app, you might want to handle this error more robustly.
+    }
+
     return {
       thankYouMessage: `Thank you for your feedback, ${input.name || 'friend'}! We appreciate you helping us improve CodeLeap.`,
     };
