@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { saveSnippet, getSnippets, deleteSnippet, Snippet } from '@/lib/snippets';
 import { debugCode } from '@/ai/flows/debug-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2 } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
 const languages = [
@@ -57,6 +58,7 @@ export default function CodeEditor() {
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [isLoadOpen, setIsLoadOpen] = useState(false);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updatePreview = useCallback(() => {
     const timeout = setTimeout(() => {
@@ -121,6 +123,41 @@ export default function CodeEditor() {
     setSnippets(getSnippets());
     toast({ title: 'Snippet Deleted', description: 'The snippet has been removed.' });
   }
+
+  const handleDownload = () => {
+    if (!code) {
+      toast({ variant: 'destructive', title: 'Error', description: 'There is no code to download.' });
+      return;
+    }
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const extension = languages.find(l => l.value === language)?.value || 'txt';
+    link.download = `codeleap-snippet.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: 'Success', description: 'File downloaded successfully.' });
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        setCode(text);
+        toast({ title: 'File Uploaded', description: 'File content loaded into the editor.' });
+      };
+      reader.readAsText(file);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-[calc(100vh-8rem)]">
@@ -207,6 +244,15 @@ export default function CodeEditor() {
                 </ScrollArea>
               </DialogContent>
             </Dialog>
+            <Button variant="outline" onClick={handleDownload}><Download className="mr-2 h-4 w-4" /> Download</Button>
+            <Button variant="outline" onClick={handleUploadClick}><Upload className="mr-2 h-4 w-4" /> Upload</Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".html,.css,.js,.txt"
+            />
           </div>
         </CardContent>
       </Card>
