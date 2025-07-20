@@ -12,6 +12,7 @@ import { Play, Loader2, AlertTriangle, CheckCircle, Lightbulb, CornerDownLeft } 
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { cn } from '@/lib/utils';
 
 interface RunResult {
     compilationOutput: string;
@@ -30,28 +31,35 @@ export default function JavaRunner({ code, setCode }: JavaRunnerProps) {
   const [suggestion, setSuggestion] = useState('');
   const [result, setResult] = useState<RunResult | null>(null);
   const { toast } = useToast();
-  const { isAiSuggestionsEnabled } = useSettings();
+  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets } = useSettings();
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const target = e.target as HTMLTextAreaElement;
     const { selectionStart, value } = target;
-    const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
-    const key = e.key as keyof typeof bracketPairs;
+    
+    if (autoBrackets) {
+        const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
+        const key = e.key as keyof typeof bracketPairs;
 
-    if (key in bracketPairs) {
+        if (key in bracketPairs) {
+          e.preventDefault();
+          const closingBracket = bracketPairs[key];
+          const newValue = value.substring(0, selectionStart) + key + closingBracket + value.substring(selectionStart);
+          setCode(newValue);
+          setTimeout(() => {
+            target.selectionStart = target.selectionEnd = selectionStart + 1;
+          }, 0);
+          return;
+        }
+    }
+
+    if (e.key === 'Tab') {
       e.preventDefault();
-      const closingBracket = bracketPairs[key];
-      const newValue = value.substring(0, selectionStart) + key + closingBracket + value.substring(selectionStart);
+      const tabSpaces = ' '.repeat(tabSize);
+      const newValue = value.substring(0, selectionStart) + tabSpaces + value.substring(target.selectionEnd);
       setCode(newValue);
       setTimeout(() => {
-        target.selectionStart = target.selectionEnd = selectionStart + 1;
-      }, 0);
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      const newValue = value.substring(0, selectionStart) + '  ' + value.substring(target.selectionEnd);
-      setCode(newValue);
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = selectionStart + 2;
+        target.selectionStart = target.selectionEnd = selectionStart + tabSpaces.length;
       }, 0);
     }
   };
@@ -101,7 +109,12 @@ export default function JavaRunner({ code, setCode }: JavaRunnerProps) {
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 font-code text-sm bg-muted/50 resize-none h-full"
+                    className={cn(
+                        "flex-1 font-code bg-muted/50 resize-none h-full",
+                        editorFontSize === 'small' && 'text-xs',
+                        editorFontSize === 'medium' && 'text-sm',
+                        editorFontSize === 'large' && 'text-base'
+                    )}
                     placeholder="Write your Java code here..."
                 />
             </CardContent>

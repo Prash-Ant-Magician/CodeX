@@ -8,26 +8,41 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTheme } from 'next-themes';
 import { Switch } from '@/components/ui/switch';
 
-// 1. Create a Context for settings
+type EditorFontSize = 'small' | 'medium' | 'large';
+
 interface SettingsContextType {
   isAiSuggestionsEnabled: boolean;
   setIsAiSuggestionsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  editorFontSize: EditorFontSize;
+  setEditorFontSize: React.Dispatch<React.SetStateAction<EditorFontSize>>;
+  tabSize: number;
+  setTabSize: React.Dispatch<React.SetStateAction<number>>;
+  autoBrackets: boolean;
+  setAutoBrackets: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-// 2. Create a Provider component
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(false);
+  const [editorFontSize, setEditorFontSize] = useState<EditorFontSize>('medium');
+  const [tabSize, setTabSize] = useState(2);
+  const [autoBrackets, setAutoBrackets] = useState(true);
 
   return (
-    <SettingsContext.Provider value={{ isAiSuggestionsEnabled, setIsAiSuggestionsEnabled }}>
+    <SettingsContext.Provider 
+      value={{ 
+        isAiSuggestionsEnabled, setIsAiSuggestionsEnabled,
+        editorFontSize, setEditorFontSize,
+        tabSize, setTabSize,
+        autoBrackets, setAutoBrackets
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );
 }
 
-// 3. Create a custom hook to use the settings context
 export function useSettings() {
   const context = useContext(SettingsContext);
   if (context === undefined) {
@@ -38,8 +53,12 @@ export function useSettings() {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  // 4. Use the context to manage state
-  const { isAiSuggestionsEnabled, setIsAiSuggestionsEnabled } = useSettings();
+  const { 
+    isAiSuggestionsEnabled, setIsAiSuggestionsEnabled,
+    editorFontSize, setEditorFontSize,
+    tabSize, setTabSize,
+    autoBrackets, setAutoBrackets
+  } = useSettings();
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,9 +108,8 @@ export default function SettingsPage() {
           <CardTitle>Editor</CardTitle>
           <CardDescription>Manage settings related to the code editor.</CardDescription>
         </CardHeader>
-        <CardContent>
-           <div className="grid gap-4">
-            <div className="flex items-center justify-between rounded-lg border p-4">
+        <CardContent className="grid gap-6">
+           <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <Label htmlFor="ai-suggestions" className="text-base">AI Code Suggestions</Label>
                 <p className="text-sm text-muted-foreground">
@@ -105,7 +123,71 @@ export default function SettingsPage() {
                 aria-label="Toggle AI code suggestions"
               />
             </div>
-          </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="font-size" className="text-base">Font Size</Label>
+                <p className="text-sm text-muted-foreground">Adjust the font size of the code editor.</p>
+              </div>
+              <RadioGroup
+                aria-label="Font Size"
+                name="font-size"
+                value={editorFontSize}
+                onValueChange={(value) => setEditorFontSize(value as EditorFontSize)}
+                className="flex items-center gap-4"
+              >
+                <Label htmlFor="font-small" className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value="small" id="font-small" />
+                  Small
+                </Label>
+                <Label htmlFor="font-medium" className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value="medium" id="font-medium" />
+                  Medium
+                </Label>
+                <Label htmlFor="font-large" className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value="large" id="font-large" />
+                  Large
+                </Label>
+              </RadioGroup>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="tab-size" className="text-base">Tab Size</Label>
+                <p className="text-sm text-muted-foreground">Set the number of spaces for a tab character.</p>
+              </div>
+              <RadioGroup
+                aria-label="Tab Size"
+                name="tab-size"
+                value={String(tabSize)}
+                onValueChange={(value) => setTabSize(Number(value))}
+                className="flex items-center gap-4"
+              >
+                <Label htmlFor="tab-2" className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value="2" id="tab-2" />
+                  2
+                </Label>
+                <Label htmlFor="tab-4" className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value="4" id="tab-4" />
+                  4
+                </Label>
+              </RadioGroup>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="auto-brackets" className="text-base">Auto Close Brackets</Label>
+                <p className="text-sm text-muted-foreground">
+                    Automatically insert closing brackets when an opening bracket is typed.
+                </p>
+              </div>
+               <Switch
+                id="auto-brackets"
+                checked={autoBrackets}
+                onCheckedChange={setAutoBrackets}
+                aria-label="Toggle automatic bracket closing"
+              />
+            </div>
         </CardContent>
       </Card>
     </div>

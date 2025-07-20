@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,9 +14,8 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, HelpCircle, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -55,9 +54,8 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
-  const { isAiSuggestionsEnabled } = useSettings();
+  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets } = useSettings();
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
@@ -65,23 +63,30 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
   ) => {
     const target = e.target as HTMLTextAreaElement;
     const { selectionStart, value } = target;
-    const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
-    const key = e.key as keyof typeof bracketPairs;
+    
+    if (autoBrackets) {
+        const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
+        const key = e.key as keyof typeof bracketPairs;
 
-    if (key in bracketPairs) {
+        if (key in bracketPairs) {
+          e.preventDefault();
+          const closingBracket = bracketPairs[key];
+          const newValue = value.substring(0, selectionStart) + key + closingBracket + value.substring(selectionStart);
+          updateFn(newValue);
+          setTimeout(() => {
+            target.selectionStart = target.selectionEnd = selectionStart + 1;
+          }, 0);
+          return;
+        }
+    }
+
+    if (e.key === 'Tab') {
       e.preventDefault();
-      const closingBracket = bracketPairs[key];
-      const newValue = value.substring(0, selectionStart) + key + closingBracket + value.substring(selectionStart);
+      const tabSpaces = ' '.repeat(tabSize);
+      const newValue = value.substring(0, selectionStart) + tabSpaces + value.substring(target.selectionEnd);
       updateFn(newValue);
       setTimeout(() => {
-        target.selectionStart = target.selectionEnd = selectionStart + 1;
-      }, 0);
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      const newValue = value.substring(0, selectionStart) + '  ' + value.substring(target.selectionEnd);
-      updateFn(newValue);
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = selectionStart + 2;
+        target.selectionStart = target.selectionEnd = selectionStart + tabSpaces.length;
       }, 0);
     }
   };
@@ -126,11 +131,11 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
     }
   }, [user, toast]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchSnippets();
   }, [fetchSnippets]);
   
-  useEffect(() => {
+  React.useEffect(() => {
     const cleanup = updatePreview();
     return cleanup;
   }, [codes, selectedLanguage, updatePreview]);
@@ -185,7 +190,24 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
     }
     
     setIsActionLoading(true);
-    const codeToSave = selectedLanguage === 'frontend' ? JSON.stringify(codes.frontend) : codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>];
+    let codeToSave;
+    switch(selectedLanguage) {
+      case 'frontend':
+        codeToSave = JSON.stringify(codes.frontend);
+        break;
+      case 'c':
+        codeToSave = codes.c;
+        break;
+      case 'python':
+        codeToSave = codes.python;
+        break;
+      case 'java':
+        codeToSave = codes.java;
+        break;
+      default:
+        codeToSave = codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]
+    }
+    
     const snippetData: SnippetData = { name: snippetName, language: selectedLanguage, code: codeToSave };
 
     try {
@@ -314,14 +336,13 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
     setSuggestion('');
   };
 
+  const editorTextAreaClass = cn(
+    "flex-1 font-code bg-muted/50 resize-none h-full",
+    editorFontSize === 'small' && 'text-xs',
+    editorFontSize === 'medium' && 'text-sm',
+    editorFontSize === 'large' && 'text-base'
+  );
 
-  const handleDownload = () => {
-    toast({ variant: 'destructive', title: 'Not Implemented', description: 'Download is not yet supported.' });
-  };
-
-  const handleUploadClick = () => {
-     toast({ variant: 'destructive', title: 'Not Implemented', description: 'Upload is not yet supported.' });
-  };
 
   const renderEditor = () => {
     switch (selectedLanguage) {
@@ -354,13 +375,13 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col gap-4">
                           <TabsContent value="html" className="flex-1 m-0">
-                            <Textarea value={codes.frontend.html} onChange={(e) => handleCodeChange('html', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('html', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your HTML here..." />
+                            <Textarea value={codes.frontend.html} onChange={(e) => handleCodeChange('html', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('html', val))} className={editorTextAreaClass} placeholder="Write your HTML here..." />
                           </TabsContent>
                           <TabsContent value="css" className="flex-1 m-0">
-                            <Textarea value={codes.frontend.css} onChange={(e) => handleCodeChange('css', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('css', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your CSS here..." />
+                            <Textarea value={codes.frontend.css} onChange={(e) => handleCodeChange('css', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('css', val))} className={editorTextAreaClass} placeholder="Write your CSS here..." />
                           </TabsContent>
                           <TabsContent value="javascript" className="flex-1 m-0">
-                            <Textarea value={codes.frontend.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('javascript', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your JavaScript here..." />
+                            <Textarea value={codes.frontend.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('javascript', val))} className={editorTextAreaClass} placeholder="Write your JavaScript here..." />
                           </TabsContent>
                         </CardContent>
                       </Tabs>
@@ -371,7 +392,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                           <CardDescription>Live preview for HTML-based projects.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col gap-4">
-                          <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
+                          <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className={editorTextAreaClass} placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
                         </CardContent>
                       </>
                     )}
@@ -493,16 +514,12 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
         {/* Dialogs and Alerts */}
         <Dialog open={isSaveOpen} onOpenChange={setIsSaveOpen}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Save Snippet</DialogTitle></DialogHeader>
-            <div className="text-sm text-muted-foreground flex items-center gap-2 py-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild><button type="button"><HelpCircle className="h-4 w-4" /></button></TooltipTrigger>
-                  <TooltipContent><p>Snippets are saved to your account if logged in, or to this browser otherwise.</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <span>Saving as {user ? 'user' : 'guest'}</span>
-            </div>
+            <DialogHeader>
+                <DialogTitle>Save Snippet</DialogTitle>
+                <DialogDescription>
+                    {user ? "Your snippet will be saved to your account." : "You are not logged in. Snippets will be saved to this browser only."}
+                </DialogDescription>
+            </DialogHeader>
             <Input value={snippetName} onChange={(e) => setSnippetName(e.target.value)} placeholder="Enter snippet name" />
             <DialogFooter>
               <Button onClick={() => setIsSaveOpen(false)} variant="outline">Cancel</Button>
@@ -517,7 +534,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Load Snippet</DialogTitle>
-              <DialogDescription>Showing snippets for {user ? user.email : 'guest'}</DialogDescription>
+              <DialogDescription>Showing snippets for {user ? user.email : 'this browser'}</DialogDescription>
             </DialogHeader>
             <ScrollArea className="h-72 -mx-6">
               {isActionLoading ? (
@@ -591,7 +608,6 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
             <AlertDialogFooter><AlertDialogAction>Got it!</AlertDialogAction></AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <input type="file" ref={fileInputRef} onChange={() => {}} className="hidden" accept=".html,.css,.js,.zip" />
     </div>
   );
 }
