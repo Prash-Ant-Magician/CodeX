@@ -38,8 +38,8 @@ export const getSessions = async (): Promise<Session[]> => {
       };
     });
   } catch (error) {
-    console.error("Error fetching sessions from Firestore:", error);
-    throw new Error("Could not fetch sessions.");
+    console.warn("Could not fetch sessions. This might be due to Firestore security rules. Please check your Firebase project configuration. Returning empty array.", error);
+    return [];
   }
 };
 
