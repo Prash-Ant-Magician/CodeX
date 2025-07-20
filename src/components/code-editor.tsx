@@ -26,88 +26,18 @@ import JavaRunner from './java-runner';
 import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-
-const defaultCodes = {
-  frontend: {
-    html: `<!DOCTYPE html>
-<html>
-<head>
-  <title>CodeLeap Project</title>
-  <!-- style.css is automatically linked -->
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <h1>Hello, CodeLeap!</h1>
-  <p>This is your HTML file.</p>
-  <button onclick="greet()">Click Me</button>
-
-  <!-- script.js is automatically linked -->
-  <script src="script.js"></script>
-</body>
-</html>`,
-    css: `body {
-  font-family: sans-serif;
-  background-color: #1a1a1a;
-  color: #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-}
-
-h1 {
-  color: #3F51B5;
-}
-
-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  background-color: #3F51B5;
-  color: white;
-  border: none;
-}`,
-    javascript: `function greet() {
-  alert("Hello from your JavaScript file!");
-}
-
-console.log("Hello, CodeLeap!");`,
-  },
-  html: `<h1>Hello, World!</h1>
-<p>This is a paragraph.</p>`,
-  css: `body {
-  background-color: #f0f0f0;
-  font-family: sans-serif;
-}`,
-  javascript: `console.log("Hello, World!");`,
-  c: `#include <stdio.h>
-
-int main() {
-    printf("Hello, C World!\\n");
-    return 0;
-}`,
-  python: `def greet(name):
-    print(f"Hello, {name}!")
-
-greet("Python World")`,
-  java: `public class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello, Java World!");
-    }
-}`
-};
+import { type AllCodes } from './main-layout';
 
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'c' | 'python' | 'java';
 type FileType = 'html' | 'css' | 'javascript';
-type AllCodes = typeof defaultCodes;
 
+interface CodeEditorProps {
+    codes: AllCodes;
+    setCodes: React.Dispatch<React.SetStateAction<AllCodes>>;
+}
 
-export default function CodeEditor() {
+export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('frontend');
-  const [codes, setCodes] = useState<AllCodes>(defaultCodes);
   const [activeTab, setActiveTab] = useState<FileType>('html');
   const [previewDoc, setPreviewDoc] = useState('');
   const [isDebugging, setIsDebugging] = useState(false);
