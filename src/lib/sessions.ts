@@ -9,6 +9,7 @@ export interface SessionData {
   time: string;
   avatarHint: string;
   description: string;
+  sessionUrl?: string;
 }
 
 export interface Session extends SessionData {
@@ -34,6 +35,7 @@ export const getSessions = async (): Promise<Session[]> => {
         time: data.time,
         avatarHint: data.avatarHint,
         description: data.description,
+        sessionUrl: data.sessionUrl,
         createdAt: data.createdAt as Timestamp,
       };
     });
@@ -74,3 +76,5 @@ export const deleteSession = async (sessionId: string): Promise<void> => {
     throw new Error("Could not delete session.");
   }
 };
+
+    

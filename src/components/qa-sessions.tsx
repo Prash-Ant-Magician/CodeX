@@ -8,7 +8,7 @@ import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Clock, Video, PlusCircle, Edit, Trash2, Loader2 } from "lucide-react";
+import { Calendar, Clock, Video, PlusCircle, Edit, Trash2, Loader2, Link } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/lib/firebase/auth";
 import { getSessions, addSession, updateSession, deleteSession, Session } from "@/lib/sessions";
@@ -28,6 +28,7 @@ const sessionSchema = z.object({
   time: z.string().min(1, "Time is required."),
   description: z.string().min(1, "Description is required."),
   avatarHint: z.string().min(1, "Avatar hint is required (e.g., 'man scientist')."),
+  sessionUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
 });
 
 export default function QaSessions() {
@@ -50,6 +51,7 @@ export default function QaSessions() {
       time: "",
       description: "",
       avatarHint: "",
+      sessionUrl: "",
     },
   });
 
@@ -72,7 +74,10 @@ export default function QaSessions() {
 
   useEffect(() => {
     if (isDialogOpen && editingSession) {
-      form.reset(editingSession);
+      form.reset({
+        ...editingSession,
+        sessionUrl: editingSession.sessionUrl || "",
+      });
     } else {
       form.reset({
         topic: "",
@@ -81,6 +86,7 @@ export default function QaSessions() {
         time: "",
         description: "",
         avatarHint: "",
+        sessionUrl: "",
       });
     }
   }, [isDialogOpen, editingSession, form]);
@@ -192,9 +198,11 @@ export default function QaSessions() {
                 </div>
               </CardContent>
               <CardFooter className="flex items-center justify-between">
-                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                  <Video className="mr-2 h-4 w-4" />
-                  Join Session
+                <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={!session.sessionUrl}>
+                  <a href={session.sessionUrl || '#'} target="_blank" rel="noopener noreferrer">
+                    <Video className="mr-2 h-4 w-4" />
+                    Join Session
+                  </a>
                 </Button>
                 {isAdmin && (
                   <div className="flex gap-2 ml-4">
@@ -255,6 +263,9 @@ export default function QaSessions() {
                <FormField control={form.control} name="avatarHint" render={({ field }) => (
                 <FormItem><FormLabel>Avatar Hint</FormLabel><FormControl><Input placeholder="e.g., 'man developer'" {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
+              <FormField control={form.control} name="sessionUrl" render={({ field }) => (
+                <FormItem><FormLabel>Session URL</FormLabel><FormControl><Input placeholder="https://youtube.com/live/..." {...field} /></FormControl><FormMessage /></FormItem>
+              )}/>
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isSubmitting}>
@@ -269,3 +280,5 @@ export default function QaSessions() {
     </div>
   );
 }
+
+    
