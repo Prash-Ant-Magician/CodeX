@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
@@ -22,6 +22,7 @@ import CodingChallenges from '@/components/coding-challenges';
 import FeedbackForm from '@/components/feedback-form';
 import SettingsPage, { SettingsProvider } from '@/components/settings';
 import QaSessions from '@/components/qa-sessions';
+import CommunityForum from '@/components/community-forum';
 import { Toaster } from './ui/toaster';
 import { useAuth, signOut } from '@/lib/firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -37,7 +38,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
-type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings' | 'qa';
+type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings' | 'qa' | 'forum';
 
 const defaultCodes = {
   frontend: {
@@ -217,12 +218,14 @@ export function MainLayout() {
         return <LearningModules />;
       case 'challenges':
         return <CodingChallenges />;
+      case 'forum':
+        return <CommunityForum />;
+      case 'qa':
+        return <QaSessions />;
       case 'feedback':
         return <FeedbackForm />;
       case 'settings':
         return <SettingsPage />;
-      case 'qa':
-        return <QaSessions />;
       default:
         return <CodeEditor codes={codes} setCodes={setCodes}/>;
     }
@@ -263,6 +266,16 @@ export function MainLayout() {
                 >
                   <Trophy />
                   <span>Challenges</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveView('forum')}
+                  isActive={activeView === 'forum'}
+                  tooltip="Community Forum"
+                >
+                  <Users />
+                  <span>Forum</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
