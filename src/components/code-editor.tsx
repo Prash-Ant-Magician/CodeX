@@ -143,7 +143,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
   };
 
   const handleSingleFileChange = (value: string) => {
-    if (selectedLanguage !== 'frontend') {
+    if (selectedLanguage !== 'frontend' && selectedLanguage !== 'c' && selectedLanguage !== 'python' && selectedLanguage !== 'java') {
       setCodes(prev => ({ ...prev, [selectedLanguage]: value }));
     }
   };
@@ -185,7 +185,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
     }
     
     setIsActionLoading(true);
-    const codeToSave = selectedLanguage === 'frontend' ? JSON.stringify(codes.frontend) : codes[selectedLanguage as Exclude<Language, 'frontend'>];
+    const codeToSave = selectedLanguage === 'frontend' ? JSON.stringify(codes.frontend) : codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>];
     const snippetData: SnippetData = { name: snippetName, language: selectedLanguage, code: codeToSave };
 
     try {
@@ -216,6 +216,8 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
         } else {
           throw new Error("Invalid project format.");
         }
+      } else if (lang === 'c' || lang === 'python' || lang === 'java') {
+         setCodes(prev => ({ ...prev, [lang]: snippet.code }));
       } else {
         setCodes(prev => ({ ...prev, [lang]: snippet.code }));
       }
@@ -260,7 +262,10 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
         
         if (selectedLanguage === 'frontend') {
             handleCodeChange(activeTab, result.code);
-        } else {
+        } else if (['c', 'python', 'java'].includes(selectedLanguage)){
+             setCodes(p => ({...p, [selectedLanguage]: result.code}))
+        }
+        else {
             handleSingleFileChange(result.code);
         }
         
@@ -300,8 +305,11 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
   const handleInsertSuggestion = () => {
     if (selectedLanguage === 'frontend') {
       handleCodeChange(activeTab, codes.frontend[activeTab] + suggestion);
-    } else {
-      handleSingleFileChange(codes[selectedLanguage as Exclude<Language, 'frontend'>] + suggestion);
+    } else if (['c', 'python', 'java'].includes(selectedLanguage)) {
+        setCodes(p => ({...p, [selectedLanguage]: p[selectedLanguage as 'c'|'python'|'java'] + suggestion}))
+    }
+    else {
+      handleSingleFileChange(codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>] + suggestion);
     }
     setSuggestion('');
   };
@@ -334,7 +342,10 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                     {selectedLanguage === 'frontend' ? (
                       <Tabs<string> defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
                         <CardHeader className="flex-row items-center justify-between">
-                          <CardTitle>Editor</CardTitle>
+                            <div className="flex flex-col gap-1.5">
+                               <CardTitle>Editor</CardTitle>
+                               <CardDescription>Multi-file editor for web projects.</CardDescription>
+                            </div>
                           <TabsList>
                             <TabsTrigger value="html">index.html</TabsTrigger>
                             <TabsTrigger value="css">style.css</TabsTrigger>
@@ -357,6 +368,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                       <>
                         <CardHeader>
                           <CardTitle>{selectedLanguage.toUpperCase()} Editor</CardTitle>
+                          <CardDescription>Live preview for HTML-based projects.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col gap-4">
                           <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
@@ -482,10 +494,10 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
         <Dialog open={isSaveOpen} onOpenChange={setIsSaveOpen}>
           <DialogContent>
             <DialogHeader><DialogTitle>Save Snippet</DialogTitle></DialogHeader>
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <div className="text-sm text-muted-foreground flex items-center gap-2 py-2">
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild><HelpCircle className="h-4 w-4" /></TooltipTrigger>
+                  <TooltipTrigger asChild><button type="button"><HelpCircle className="h-4 w-4" /></button></TooltipTrigger>
                   <TooltipContent><p>Snippets are saved to your account if logged in, or to this browser otherwise.</p></TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -493,6 +505,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
             </div>
             <Input value={snippetName} onChange={(e) => setSnippetName(e.target.value)} placeholder="Enter snippet name" />
             <DialogFooter>
+              <Button onClick={() => setIsSaveOpen(false)} variant="outline">Cancel</Button>
               <Button onClick={handleSaveSnippet} disabled={isActionLoading}>
                 {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save
               </Button>
@@ -502,23 +515,34 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
 
         <Dialog open={isLoadOpen} onOpenChange={setIsLoadOpen}>
           <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>Load Snippet</DialogTitle></DialogHeader>
-            <div className="text-sm text-muted-foreground">Showing snippets for {user ? user.email : 'guest'}</div>
-            <ScrollArea className="h-72">
+            <DialogHeader>
+              <DialogTitle>Load Snippet</DialogTitle>
+              <DialogDescription>Showing snippets for {user ? user.email : 'guest'}</DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-72 -mx-6">
               {isActionLoading ? (
                 <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
               ) : (
-                <div className="flex flex-col gap-2 pr-4">
+                <div className="flex flex-col gap-2 px-6">
                   {snippets.length > 0 ? (
                     snippets.map((s) => (
-                      <div key={s.id} className="group flex items-center justify-between rounded-md border p-3 hover:bg-muted/50">
+                      <div key={s.id} className="group flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
                         <button onClick={() => handleLoadSnippet(s)} className="text-left flex-1">
                           <p className="font-semibold">{s.name}</p>
                           <p className="text-sm text-muted-foreground">{s.language.toUpperCase()} - {new Date(s.createdAt as string).toLocaleDateString()}</p>
                         </button>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground opacity-0 group-hover:opacity-100" onClick={() => handleDeleteSnippet(s.id)} disabled={isActionLoading}>
-                          {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-muted-foreground opacity-0 group-hover:opacity-100" onClick={() => handleDeleteSnippet(s.id)} disabled={isActionLoading}>
+                                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                             <TooltipContent>
+                                <p>Delete Snippet</p>
+                              </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     ))
                   ) : (
@@ -527,6 +551,9 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                 </div>
               )}
             </ScrollArea>
+             <DialogFooter>
+               <Button onClick={() => setIsLoadOpen(false)} variant="outline">Close</Button>
+             </DialogFooter>
           </DialogContent>
         </Dialog>
         
@@ -545,6 +572,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                     rows={4}
                 />
                 <DialogFooter>
+                    <Button onClick={() => setIsAiGenerateOpen(false)} variant="outline">Cancel</Button>
                     <Button onClick={handleGenerateCode} disabled={isGenerating}>
                         {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : "Generate"}
                     </Button>
@@ -567,3 +595,5 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
     </div>
   );
 }
+
+    
