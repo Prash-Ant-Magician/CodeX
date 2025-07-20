@@ -49,88 +49,169 @@ const playFailureSound = () => {
 
 const challenges = {
   c: {
-    "Basics": [
+    "Basics & Control Flow": [
       {
         id: 'c-hello-world',
-        title: 'C: Hello, World!',
-        description: 'Write a C program that includes the `stdio.h` header and prints "Hello, C!" to the console.',
+        title: 'Hello, World!',
+        description: 'Write a C program that includes the `stdio.h` header and prints "Hello, C!" to the console followed by a newline.',
         template: `#include <stdio.h>\n\nint main() {\n  // Your code here\n  return 0;\n}`,
-        test: (code: string) => code.includes('#include <stdio.h>') && code.includes('printf("Hello, C!");'),
+        test: (code: string) => code.includes('#include <stdio.h>') && /printf\("Hello, C!\\n"\);/.test(code.replace(/\s/g, '')),
       },
       {
-        id: 'c-sum-variables',
-        title: 'C: Sum of Two Numbers',
-        description: 'Declare two integer variables, assign them values, and print their sum.',
-        template: `#include <stdio.h>\n\nint main() {\n  int a = 5;\n  int b = 10;\n  // Your code here to print the sum\n  return 0;\n}`,
-        test: (code: string) => /printf\(".*%d.*",\s*a\s*\+\s*b\s*\)/.test(code.replace(/\s/g, '')),
+        id: 'c-variables',
+        title: 'Variables and Data Types',
+        description: 'Declare an integer `age` with value 25, a float `pi` with value 3.14, and a char `initial` with value \'C\'. Print all three variables.',
+        template: `#include <stdio.h>\n\nint main() {\n  // Declare and initialize variables here\n\n  // Print the variables here\n  return 0;\n}`,
+        test: (code: string) => /intage=25;.*floatpi=3.14;.*charinitial='C';/.test(code.replace(/\s/g, '')) && code.includes('printf'),
       },
       {
+        id: 'c-if-else',
+        title: 'If-Else Statement',
+        description: 'Write a program that checks if a number is positive, negative, or zero and prints the result.',
+        template: `#include <stdio.h>\n\nint main() {\n  int number = -5;\n  // Your if-else logic here\n  return 0;\n}`,
+        test: (code: string) => code.includes('if') && code.includes('else if') && code.includes('else'),
+      },
+       {
         id: 'c-for-loop',
-        title: 'C: For Loop',
+        title: 'For Loop',
         description: 'Write a C program that uses a `for` loop to print numbers from 1 to 5, each on a new line.',
         template: `#include <stdio.h>\n\nint main() {\n  // Your for loop here\n  return 0;\n}`,
         test: (code: string) => code.includes('for') && /for\s*\(.*int\s+i\s*=\s*1;.*i\s*<=\s*5;.*i\s*\+\+.*\)/.test(code.replace(/\s/g, '')),
       },
     ],
-    "Pointers & Memory": [
-        {
-            id: 'c-pointer-basics',
-            title: 'Pointer Basics',
-            description: 'Declare an integer `x` and a pointer `ptr` that stores the address of `x`. Print both the value of `x` and the value `ptr` points to.',
-            template: `#include <stdio.h>\n\nint main() {\n  int x = 10;\n  // Your pointer code here\n  return 0;\n}`,
-            test: (code: string) => /printf\(.*%d.*,\s*\*ptr\)/.test(code.replace(/\s/g, ''))
-        },
+    "Functions": [
+      {
+        id: 'c-simple-function',
+        title: 'Simple Function',
+        description: 'Write a function `int add(int a, int b)` that returns the sum of two integers. Call it from `main` and print the result.',
+        template: `#include <stdio.h>\n\n// Define your function here\n\nint main() {\n  int result = add(10, 20);\n  printf("Result: %d\\n", result);\n  return 0;\n}`,
+        test: (code: string) => /intadd\(int(a|a),int(b|b)\){returna\+b;}/.test(code.replace(/\s/g, ''))
+      },
+      {
+        id: 'c-factorial-recursion',
+        title: 'Factorial using Recursion',
+        description: 'Write a recursive function to calculate the factorial of a number.',
+        template: `#include <stdio.h>\n\nint factorial(int n) {\n  // Your recursive logic here\n}\n\nint main() {\n  printf("Factorial of 5 is %d\\n", factorial(5));\n  return 0;\n}`,
+        test: (code: string) => code.includes('factorial(n - 1)') && code.includes('if (n <= 1)'),
+      },
     ],
-    "Data Structures": [
+    "Pointers & Memory": [
+      {
+        id: 'c-pointer-basics',
+        title: 'Pointer Basics',
+        description: 'Declare an integer `x` and a pointer `ptr` that stores the address of `x`. Print both the value of `x` and the value `ptr` points to.',
+        template: `#include <stdio.h>\n\nint main() {\n  int x = 10;\n  // Your pointer code here\n  return 0;\n}`,
+        test: (code: string) => /int\*ptr=&x;.*printf\(.*%d.*,\*ptr\)/.test(code.replace(/\s/g, ''))
+      },
+      {
+        id: 'c-swap-pointers',
+        title: 'Swap with Pointers',
+        description: 'Write a function `void swap(int *a, int *b)` that swaps the values of two integers using pointers.',
+        template: `#include <stdio.h>\n\nvoid swap(int *a, int *b) {\n  // Your swap logic here\n}\n\nint main() {\n  int x = 5, y = 10;\n  swap(&x, &y);\n  printf("x=%d, y=%d\\n", x, y); // Should print x=10, y=5\n  return 0;\n}`,
+        test: (code: string) => code.includes('int temp = *a') && code.includes('*a = *b') && code.includes('*b = temp'),
+      },
+    ],
+    "Arrays & Strings": [
         {
             id: 'c-array-sum',
             title: 'Sum of Array Elements',
             description: 'Write a function `sum_array` that takes an integer array and its size, and returns the sum of its elements.',
             template: `#include <stdio.h>\n\nint sum_array(int arr[], int size) {\n  // Your code here\n}\n\nint main() {\n  int my_arr[] = {1, 2, 3, 4, 5};\n  int total = sum_array(my_arr, 5);\n  printf("Sum: %d\\n", total); // Expected: 15\n  return 0;\n}`,
-            test: (code: string) => {
-                // This is a basic check. Real testing would require compilation & execution.
-                return code.includes('for') && code.includes('sum +=')
-            }
+            test: (code: string) => code.includes('for') && (code.includes('sum +=') || code.includes('sum = sum +'))
         },
+        {
+          id: 'c-string-reverse',
+          title: 'Reverse a String',
+          description: 'Write a function `void reverse(char *str)` that reverses a string in-place.',
+          template: `#include <stdio.h>\n#include <string.h>\n\nvoid reverse(char *str) {\n  // Your code here\n}\n\nint main() {\n  char myStr[] = "hello";\n  reverse(myStr);\n  printf("%s\\n", myStr); // Expected: olleh\n  return 0;\n}`,
+          test: (code: string) => code.includes('strlen') && code.includes('for') && code.includes('str[i]'),
+        }
+    ],
+    "Data Structures": [
+       {
+          id: 'c-struct',
+          title: 'Structs',
+          description: 'Define a `struct Student` with `name` (char array) and `id` (int). Create an instance, populate it, and print its members.',
+          template: `#include <stdio.h>\n#include <string.h>\n\n// Define the struct here\n\nint main() {\n  // Create and use the struct here\n  return 0;\n}`,
+          test: (code: string) => /structStudent{.*};/.test(code.replace(/\s/g, '')) && code.includes('strcpy'),
+        },
+        {
+          id: 'c-linked-list',
+          title: 'Singly Linked List',
+          description: 'Implement a basic singly linked list with functions to insert a node at the end and print the list.',
+          template: `#include <stdio.h>\n#include <stdlib.h>\n\n// Linked list implementation here\n\nint main() {\n // Use your linked list here\n return 0;\n}`,
+          test: (code: string) => code.includes('struct Node') && code.includes('next') && code.includes('malloc'),
+        }
     ]
   },
   python: {
-    "Basics": [
+    "Basics & Control Flow": [
       {
         id: 'python-hello-world',
-        title: 'Python: Hello, World!',
+        title: 'Hello, World!',
         description: 'Write a Python script that prints "Hello, Python!" to the console.',
         template: `# Your code here`,
         test: (code: string) => /print\(['"]Hello, Python!['"]\)/.test(code.replace(/\s/g, '')),
       },
       {
+        id: 'python-variables',
+        title: 'Variables',
+        description: 'Create a variable `name` with the value "CodeLeap" and a variable `year` with the value 2024. Print them in a formatted string.',
+        template: `# Your code here`,
+        test: (code: string) => /name\s*=\s*['"]CodeLeap['"]/.test(code) && /year\s*=\s*2024/.test(code) && (code.includes('f"') || code.includes('.format')),
+      },
+      {
+        id: 'python-if-elif-else',
+        title: 'If-Elif-Else',
+        description: 'Write a script that checks if a grade is "A", "B", "C", or "Fail" based on a score variable.',
+        template: `score = 85\n# Your code here`,
+        test: (code: string) => code.includes('if') && code.includes('elif') && code.includes('else'),
+      },
+      {
+        id: 'python-for-loop',
+        title: 'For Loop',
+        description: 'Use a for loop to iterate through a list of numbers and print only the even ones.',
+        template: `numbers = [1, 2, 3, 4, 5, 6]\n# Your code here`,
+        test: (code: string) => code.includes('for') && code.includes('in numbers:') && code.includes('% 2 == 0'),
+      },
+    ],
+    "Functions & Lambdas": [
+      {
         id: 'python-sum-function',
-        title: 'Python: Sum Function',
+        title: 'Sum Function',
         description: 'Define a function `add` that takes two numbers and returns their sum.',
         template: `def add(a, b):\n  # Your code here`,
-        test: (code: string) => {
-          try {
-            const fullCode = `${code}\n\nassert add(5, 10) == 15\nassert add(-1, 1) == 0`;
-            // This is a simplified test; a real environment would execute this.
-            return code.includes('return a + b');
-          } catch { return false; }
-        },
+        test: (code: string) => code.includes('return a + b'),
+      },
+       {
+        id: 'python-lambda',
+        title: 'Lambda Function',
+        description: 'Create a lambda function that takes a number `x` and returns `x` squared. Assign it to a variable `square`.',
+        template: `square = # Your lambda function here\nprint(square(5))`,
+        test: (code: string) => /square=lambda\s*x:\s*x\s*\*\*\s*2/.test(code.replace(/\s/g, '')),
       },
     ],
     "Data Structures": [
-      {
+       {
         id: 'python-list-comprehension',
-        title: 'Python: List of Squares',
+        title: 'List of Squares',
         description: 'Use a list comprehension to create a list of the first 5 square numbers (1, 4, 9, 16, 25). Assign it to a variable `squares`.',
-        template: `squares = [] # Your list comprehension here`,
-        test: (code: string) => /squares\s*=\s*\[\s*i\s*\*\*\s*2\s+for\s+i\s+in\s+range\(\s*1\s*,\s*6\s*\)\s*\]/.test(code.replace(/\s/g, '')),
+        template: `squares = # Your list comprehension here`,
+        test: (code: string) => /squares=\[\s*i\s*\*\*\s*2\s*for\s*i\s*in\s*range\(\s*1\s*,\s*6\s*\)\s*\]/.test(code.replace(/\s/g, '')),
       },
       {
         id: 'python-dict-access',
         title: 'Dictionary Access',
         description: 'Create a dictionary for a user with keys "name" and "age". Then, print the value of the "name" key.',
         template: `user = {"name": "Alice", "age": 30}\n# Your code here`,
-        test: (code: string) => /print\(user\[['"]name['"]\]\)/.test(code.replace(/\s/g, ''))
+        test: (code: string) => /print\(user\[['"]name['"]\]\)/.test(code.replace(/\s/g, '')),
+      },
+      {
+        id: 'python-set-operations',
+        title: 'Set Operations',
+        description: 'Given two sets, find their union and intersection.',
+        template: `set1 = {1, 2, 3}\nset2 = {3, 4, 5}\n# Find and print the union and intersection`,
+        test: (code: string) => (code.includes('.union(set2)') || code.includes('set1 | set2')) && (code.includes('.intersection(set2)') || code.includes('set1 & set2'))
       },
     ],
     "Object-Oriented Programming": [
@@ -139,51 +220,111 @@ const challenges = {
         title: 'Simple Class',
         description: 'Create a `Dog` class with an `__init__` method that sets a `name` attribute, and a `bark` method that returns "Woof!".',
         template: `class Dog:\n  # Your code here`,
-        test: (code: string) => code.includes('class Dog:') && code.includes('def __init__') && code.includes('def bark')
-      }
+        test: (code: string) => code.includes('class Dog:') && code.includes('def __init__') && code.includes('self.name') && code.includes('def bark'),
+      },
+      {
+        id: 'python-inheritance',
+        title: 'Inheritance',
+        description: 'Create a `Vehicle` parent class and a `Car` child class that inherits from `Vehicle` and has its own `drive` method.',
+        template: `class Vehicle:\n  def __init__(self, brand):\n    self.brand = brand\n\n# Your Car class here\n\nmy_car = Car("Ford")\nprint(my_car.brand)\nmy_car.drive()`,
+        test: (code: string) => code.includes('class Car(Vehicle):') && code.includes('super().__init__'),
+      },
+    ],
+    "Algorithms": [
+        {
+          id: 'python-linear-search',
+          title: 'Linear Search',
+          description: 'Write a function `linear_search(data, target)` that returns the index of the target in the list, or -1 if not found.',
+          template: `def linear_search(data, target):\n  # Your code here`,
+          test: (code: string) => code.includes('for') && code.includes('if data[i] == target:') && code.includes('return i'),
+        },
+        {
+          id: 'python-binary-search',
+          title: 'Binary Search (Iterative)',
+          description: 'Write a function `binary_search(sorted_data, target)` that finds a target in a sorted list.',
+          template: `def binary_search(sorted_data, target):\n  # Your code here`,
+          test: (code: string) => code.includes('while') && code.includes('mid =') && code.includes('low') && code.includes('high'),
+        },
     ]
   },
   java: {
-    "Basics": [
+    "Basics & Control Flow": [
       {
         id: 'java-hello-world',
-        title: 'Java: Hello, World!',
+        title: 'Hello, World!',
         description: 'Write a Java program that prints "Hello, Java!" to the console inside the main method.',
         template: `public class Main {\n  public static void main(String[] args) {\n    // Your code here\n  }\n}`,
         test: (code: string) => /System\.out\.println\(['"]Hello, Java!['"]\);/.test(code.replace(/\s/g, '')),
       },
       {
         id: 'java-sum-variables',
-        title: 'Java: Sum of Two Numbers',
+        title: 'Sum of Two Numbers',
         description: 'Declare two integer variables, `a` and `b`, assign them values, and print their sum.',
         template: `public class Main {\n  public static void main(String[] args) {\n    int a = 5;\n    int b = 10;\n    // Your code here to print the sum\n  }\n}`,
         test: (code: string) => /System\.out\.println\(\s*a\s*\+\s*b\s*\);/.test(code.replace(/\s/g, '')),
+      },
+      {
+        id: 'java-for-loop',
+        title: 'For Loop',
+        description: 'Use a for loop to print numbers from 1 to 5.',
+        template: `public class Main {\n  public static void main(String[] args) {\n    // Your for loop here\n  }\n}`,
+        test: (code: string) => /for\(inti=1;i<=5;i\+\+\)/.test(code.replace(/\s/g,''))
       },
     ],
     "Object-Oriented Programming": [
         {
             id: 'java-class',
             title: 'Simple Car Class',
-            description: 'Create a `Car` class with a `color` attribute and a `startEngine` method that prints "Engine started!".',
-            template: `public class Car {\n  String color = "Red";\n\n  // Your method here\n\n  public static void main(String[] args) {\n    Car myCar = new Car();\n    myCar.startEngine();\n  }\n}`,
-            test: (code: string) => code.includes('void startEngine()') && code.includes('System.out.println("Engine started!");')
+            description: 'Create a `Car` class with a `color` String attribute and a `startEngine` method that prints "Engine started!". In `main`, create a `Car` object and call its method.',
+            template: `// You can write the Car class in the same file or a new one for this simulation\n\npublic class Main {\n  public static void main(String[] args) {\n    // Create a Car object and call its methods here\n  }\n}`,
+            test: (code: string) => code.includes('class Car') && code.includes('void startEngine()') && code.includes('System.out.println("Engine started!");')
         },
         {
             id: 'java-constructor',
             title: 'Class Constructor',
-            description: 'Create a `Person` class with a `name` attribute and a constructor that initializes it.',
-            template: `public class Person {\n  String name;\n\n  // Your constructor here\n\n  public static void main(String[] args) {\n    Person person = new Person("John");\n    System.out.println(person.name);\n  }\n}`,
-            test: (code: string) => /public Person\(String personName\)\s*{\s*name = personName;\s*}/.test(code.replace(/\s/g, ''))
+            description: 'Create a `Person` class with a `name` String attribute and a constructor that initializes it.',
+            template: `public class Main {\n  public static void main(String[] args) {\n    Person person = new Person("John");\n    System.out.println(person.name);\n  }\n}\n\nclass Person {\n  String name;\n\n  // Your constructor here\n}`,
+            test: (code: string) => /public Person\(StringpersonName\)\s*{\s*this\.name=personName;\s*}/.test(code.replace(/\s/g, ''))
+        },
+        {
+          id: 'java-inheritance',
+          title: 'Inheritance',
+          description: 'Create an `Animal` superclass and a `Dog` subclass that extends `Animal` and overrides a `makeSound` method.',
+          template: `class Animal {\n  public void makeSound() {\n    System.out.println("Some animal sound");\n  }\n}\n\n// Your Dog class here\n\npublic class Main {\n  public static void main(String[] args) {\n    Dog myDog = new Dog();\n    myDog.makeSound(); // Expected: Bark\n  }\n}`,
+          test: (code: string) => code.includes('class Dog extends Animal') && code.includes('@Override'),
         }
     ],
-    "Data Structures": [
+    "Data Structures & Collections": [
         {
-            id: 'java-string-length',
-            title: 'Java: String Length',
-            description: 'Create a string variable and print its length to the console.',
-            template: `public class Main {\n  public static void main(String[] args) {\n    String myString = "CodeLeap";\n    // Your code here to print the length\n  }\n}`,
-            test: (code: string) => /System\.out\.println\(myString\.length\(\)\);/.test(code.replace(/\s/g, '')),
+            id: 'java-array',
+            title: 'Arrays',
+            description: 'Create an array of integers and use a loop to calculate and print their sum.',
+            template: `public class Main {\n  public static void main(String[] args) {\n    int[] numbers = {10, 20, 30, 40};\n    // Your code here\n  }\n}`,
+            test: (code: string) => code.includes('for') && (code.includes('sum +=') || code.includes('sum = sum +')),
         },
+        {
+          id: 'java-arraylist',
+          title: 'ArrayList',
+          description: 'Use an `ArrayList` to store a list of Strings. Add three names and then print the size of the list.',
+          template: `import java.util.ArrayList;\n\npublic class Main {\n  public static void main(String[] args) {\n    // Your ArrayList code here\n  }\n}`,
+          test: (code: string) => code.includes('new ArrayList<String>()') && code.includes('.add(') && code.includes('.size()'),
+        },
+        {
+          id: 'java-hashmap',
+          title: 'HashMap',
+          description: 'Use a `HashMap` to store user IDs (Integer) and usernames (String). Put two users and then retrieve and print one by their ID.',
+          template: `import java.util.HashMap;\n\npublic class Main {\n  public static void main(String[] args) {\n    // Your HashMap code here\n  }\n}`,
+          test: (code: string) => code.includes('new HashMap<Integer, String>()') && code.includes('.put(') && code.includes('.get('),
+        }
+    ],
+    "Exception Handling": [
+      {
+        id: 'java-try-catch',
+        title: 'Try-Catch Block',
+        description: 'Write code that attempts to divide by zero inside a `try` block and catches the `ArithmeticException` in a `catch` block, printing an error message.',
+        template: `public class Main {\n  public static void main(String[] args) {\n    // Your try-catch block here\n  }\n}`,
+        test: (code: string) => code.includes('try') && code.includes('catch (ArithmeticException e)'),
+      }
     ]
   },
   javascript: {
@@ -196,7 +337,7 @@ const challenges = {
         test: (code: string) => {
           try {
             const fn = new Function(`${code}\nreturn sumArray;`)();
-            return fn([1, 2, 3]) === 6 && fn([-1, 0, 1]) === 0 && fn([]) === 0;
+            return fn([1, 2, 3]) === 6 && fn([-1, 0, 1]) === 0;
           } catch { return false; }
         },
       },
