@@ -385,6 +385,60 @@ const challenges = {
       },
     ]
   },
+  typescript: {
+    "Basics": [
+      {
+        id: 'ts-hello-world',
+        title: 'Hello, TypeScript!',
+        description: 'Declare a variable of type string and assign it "Hello, TypeScript!". Print it to the console.',
+        template: `let message: string = "Hello, TypeScript!";\nconsole.log(message);`,
+        test: (code: string) => /let\s+message:\s*string\s*=\s*['"]Hello, TypeScript!['"];/.test(code) && code.includes('console.log(message)')
+      },
+      {
+        id: 'ts-typed-function',
+        title: 'Typed Function',
+        description: 'Write a function `add` that takes two numbers and returns a number.',
+        template: `function add(a: number, b: number): number {\n  // Your code here\n}`,
+        test: (code: string) => /return a \+ b;/.test(code.replace(/\s/g, ''))
+      }
+    ]
+  },
+  ruby: {
+    "Basics": [
+      {
+        id: 'ruby-hello-world',
+        title: 'Hello, Ruby!',
+        description: 'Write a Ruby script that prints "Hello, Ruby!" to the console.',
+        template: `# Your code here`,
+        test: (code: string) => /puts\s*['"]Hello, Ruby!['"]/.test(code.replace(/\s/g, ''))
+      },
+      {
+        id: 'ruby-simple-method',
+        title: 'Simple Method',
+        description: 'Define a method `greet` that takes a name and prints a greeting.',
+        template: `def greet(name)\n  # Your code here\nend\n\ngreet("CodeLeap")`,
+        test: (code: string) => code.includes('puts "Hello, #{name}!"') || code.includes("puts 'Hello, ' + name + '!'")
+      }
+    ]
+  },
+  r: {
+    "Basics": [
+      {
+        id: 'r-hello-world',
+        title: 'Hello, R!',
+        description: 'Write an R script that prints "Hello, R!" to the console.',
+        template: `# Your code here`,
+        test: (code: string) => /print\(['"]Hello, R!['"]\)/.test(code.replace(/\s/g, ''))
+      },
+      {
+        id: 'r-vector-sum',
+        title: 'Vector Sum',
+        description: 'Create a numeric vector and calculate its sum.',
+        template: `my_vector <- c(10, 20, 30, 40)\n# Calculate and print the sum of my_vector`,
+        test: (code: string) => code.includes('sum(my_vector)')
+      }
+    ]
+  },
   html: {
     "Basics": [
       {
@@ -430,6 +484,9 @@ const languageOptions = [
   { value: 'python', label: 'Python' },
   { value: 'java', label: 'Java' },
   { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'ruby', label: 'Ruby' },
+  { value: 'r', label: 'R' },
   { value: 'html', label: 'HTML' },
   { value: 'css', label: 'CSS' },
 ];

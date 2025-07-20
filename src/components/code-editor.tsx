@@ -22,12 +22,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import CCompiler from './c-compiler';
 import PythonRunner from './python-runner';
 import JavaRunner from './java-runner';
+import TypescriptRunner from './typescript-runner';
+import RubyRunner from './ruby-runner';
+import RRunner from './r-runner';
 import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { type AllCodes } from './main-layout';
 
-type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'c' | 'python' | 'java';
+type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
 type FileType = 'html' | 'css' | 'javascript';
 
 interface CodeEditorProps {
@@ -148,7 +151,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
   };
 
   const handleSingleFileChange = (value: string) => {
-    if (selectedLanguage !== 'frontend' && selectedLanguage !== 'c' && selectedLanguage !== 'python' && selectedLanguage !== 'java') {
+    if (selectedLanguage !== 'frontend' && !['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage)) {
       setCodes(prev => ({ ...prev, [selectedLanguage]: value }));
     }
   };
@@ -195,17 +198,14 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
       case 'frontend':
         codeToSave = JSON.stringify(codes.frontend);
         break;
-      case 'c':
-        codeToSave = codes.c;
-        break;
-      case 'python':
-        codeToSave = codes.python;
-        break;
-      case 'java':
-        codeToSave = codes.java;
-        break;
+      case 'c': codeToSave = codes.c; break;
+      case 'python': codeToSave = codes.python; break;
+      case 'java': codeToSave = codes.java; break;
+      case 'typescript': codeToSave = codes.typescript; break;
+      case 'ruby': codeToSave = codes.ruby; break;
+      case 'r': codeToSave = codes.r; break;
       default:
-        codeToSave = codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]
+        codeToSave = codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r'>]
     }
     
     const snippetData: SnippetData = { name: snippetName, language: selectedLanguage, code: codeToSave };
@@ -238,7 +238,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
         } else {
           throw new Error("Invalid project format.");
         }
-      } else if (lang === 'c' || lang === 'python' || lang === 'java') {
+      } else if (['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(lang)) {
          setCodes(prev => ({ ...prev, [lang]: snippet.code }));
       } else {
         setCodes(prev => ({ ...prev, [lang]: snippet.code }));
@@ -284,7 +284,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
         
         if (selectedLanguage === 'frontend') {
             handleCodeChange(activeTab, result.code);
-        } else if (['c', 'python', 'java'].includes(selectedLanguage)){
+        } else if (['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage)){
              setCodes(p => ({...p, [selectedLanguage]: result.code}))
         }
         else {
@@ -327,11 +327,11 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
   const handleInsertSuggestion = () => {
     if (selectedLanguage === 'frontend') {
       handleCodeChange(activeTab, codes.frontend[activeTab] + suggestion);
-    } else if (['c', 'python', 'java'].includes(selectedLanguage)) {
-        setCodes(p => ({...p, [selectedLanguage]: p[selectedLanguage as 'c'|'python'|'java'] + suggestion}))
+    } else if (['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage)) {
+        setCodes(p => ({...p, [selectedLanguage]: p[selectedLanguage as 'c'|'python'|'java'|'typescript'|'ruby'|'r'] + suggestion}))
     }
     else {
-      handleSingleFileChange(codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>] + suggestion);
+      handleSingleFileChange(codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r'>] + suggestion);
     }
     setSuggestion('');
   };
@@ -352,6 +352,12 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
             return <PythonRunner code={codes.python} setCode={(c) => setCodes(p => ({...p, python: c}))} />;
         case 'java':
             return <JavaRunner code={codes.java} setCode={(c) => setCodes(p => ({...p, java: c}))} />;
+        case 'typescript':
+            return <TypescriptRunner code={codes.typescript} setCode={(c) => setCodes(p => ({...p, typescript: c}))} />;
+        case 'ruby':
+            return <RubyRunner code={codes.ruby} setCode={(c) => setCodes(p => ({...p, ruby: c}))} />;
+        case 'r':
+            return <RRunner code={codes.r} setCode={(c) => setCodes(p => ({...p, r: c}))} />;
         default:
             const isWebPreviewable = ['frontend', 'html'].includes(selectedLanguage);
             return (
@@ -392,7 +398,7 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                           <CardDescription>Live preview for HTML-based projects.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col gap-4">
-                          <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className={editorTextAreaClass} placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
+                          <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className={editorTextAreaClass} placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
                         </CardContent>
                       </>
                     )}
@@ -501,9 +507,12 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                         <SelectItem value="html">HTML</SelectItem>
                         <SelectItem value="css">CSS</SelectItem>
                         <SelectItem value="javascript">JavaScript</SelectItem>
+                        <SelectItem value="typescript">TypeScript</SelectItem>
                         <SelectItem value="python">Python</SelectItem>
                         <SelectItem value="java">Java</SelectItem>
                         <SelectItem value="c">C Language</SelectItem>
+                        <SelectItem value="ruby">Ruby</SelectItem>
+                        <SelectItem value="r">R</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -611,5 +620,3 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
     </div>
   );
 }
-
-    

@@ -66,6 +66,15 @@ const suggestCodeFlow = ai.defineFlow(
         case 'javascript':
           suggestion = 'console.log("Hello, World!");';
           break;
+        case 'typescript':
+          suggestion = 'console.log("Hello, TypeScript!");';
+          break;
+        case 'ruby':
+            suggestion = 'puts "Hello, Ruby!"';
+            break;
+        case 'r':
+            suggestion = 'print("Hello, R!")';
+            break;
         case 'html':
           suggestion = '<h1></h1>';
           break;

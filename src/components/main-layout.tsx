@@ -110,7 +110,11 @@ greet("Python World")`,
     public static void main(String[] args) {
         System.out.println("Hello, Java World!");
     }
-}`
+}`,
+  typescript: `let message: string = "Hello, TypeScript!";
+console.log(message);`,
+  ruby: `puts "Hello, Ruby!"`,
+  r: `print("Hello, R!")`,
 };
 
 export type AllCodes = typeof defaultCodes;
