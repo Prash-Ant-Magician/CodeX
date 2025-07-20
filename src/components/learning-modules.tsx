@@ -181,6 +181,73 @@ paragraph.style.color = "blue";`,
       },
     ],
   },
+  {
+    title: "Python Programming",
+    lessons: [
+      {
+        title: "Introduction to Python",
+        content: "Python is a high-level, interpreted programming language known for its simple, readable syntax. It is dynamically typed and uses whitespace indentation to define code blocks.",
+        code: `print("Hello, Python!")
+
+name = "CodeLeap"
+print(f"Welcome to {name}")`,
+      },
+      {
+        title: "Variables and Data Types",
+        content: "Python has several built-in data types. The most common are integers (`int`), floating-point numbers (`float`), strings (`str`), lists (`list`), tuples (`tuple`), and dictionaries (`dict`).",
+        code: `age = 10  # int
+price = 19.99  # float
+name = "Python"  # str
+colors = ["red", "green", "blue"]  # list
+person = {"name": "John", "age": 30} # dict`,
+      },
+      {
+        title: "Defining Functions",
+        content: "Functions are defined using the `def` keyword. They are reusable blocks of code that perform a specific action. Functions can take arguments and return a value using the `return` keyword.",
+        code: `def greet(name):
+    return f"Hello, {name}!"
+
+message = greet("World")
+print(message)  # Output: Hello, World!`,
+      },
+    ],
+  },
+  {
+    title: "Java Essentials",
+    lessons: [
+      {
+        title: "Introduction to Java",
+        content: "Java is a class-based, object-oriented programming language that is designed to have as few implementation dependencies as possible. A 'class' is a blueprint for creating objects, and the `main` method is the entry point for execution.",
+        code: `public class MyFirstApp {
+    public static void main(String[] args) {
+        System.out.println("Hello, Java!");
+    }
+}`,
+      },
+      {
+        title: "Variables and Data Types",
+        content: "In Java, you must declare all variables before they can be used. Every variable has a data type. Common primitive types include `int` for integers, `double` for floating-point numbers, `boolean` for true/false values, and `char` for single characters. `String` is a commonly used class for text.",
+        code: `int userAge = 30;
+double itemPrice = 25.99;
+boolean isLoggedIn = true;
+String userName = "JaneDoe";`,
+      },
+      {
+        title: "Methods",
+        content: "A method is a block of code which only runs when it is called. You can pass data, known as parameters, into a method. Methods are used to perform certain actions, and they are also known as functions.",
+        code: `public class Calculator {
+    static int add(int x, int y) {
+        return x + y;
+    }
+
+    public static void main(String[] args) {
+        int sum = add(5, 10);
+        System.out.println(sum); // Output: 15
+    }
+}`,
+      },
+    ],
+  },
     {
     title: "C Programming",
     lessons: [
@@ -342,5 +409,3 @@ export default function LearningModules() {
     </div>
   );
 }
-
-    

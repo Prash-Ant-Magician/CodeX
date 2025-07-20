@@ -79,6 +79,73 @@ const challenges = [
       return code.includes('for') && /for\s*\(.*int\s+i\s*=\s*1;.*i\s*<=\s*5;.*i\s*\+\+.*\)/.test(code.replace(/\s/g, ''));
     },
   },
+  // Python Challenges
+  {
+    id: 'python-hello-world',
+    title: 'Python: Hello, World!',
+    description: 'Write a Python script that prints "Hello, Python!" to the console.',
+    template: `# Your code here`,
+    language: 'python',
+    test: (code: string) => {
+      return /print\(['"]Hello, Python!['"]\)/.test(code.replace(/\s/g, ''));
+    },
+  },
+  {
+    id: 'python-sum-function',
+    title: 'Python: Sum Function',
+    description: 'Define a function `add` that takes two numbers and returns their sum.',
+    template: `def add(a, b):\n  # Your code here`,
+    language: 'python',
+    test: (code: string) => {
+      try {
+        const fn = new Function(`${code}\nreturn add;`)();
+        return fn(5, 10) === 15 && fn(-1, 1) === 0;
+      } catch {
+        return false;
+      }
+    },
+  },
+  {
+    id: 'python-list-comprehension',
+    title: 'Python: List of Squares',
+    description: 'Use a list comprehension to create a list of the first 5 square numbers (1, 4, 9, 16, 25).',
+    template: `squares = [] # Your list comprehension here`,
+    language: 'python',
+    test: (code: string) => {
+      return /\[\s*i\s*\*\*\s*2\s+for\s+i\s+in\s+range\(\s*1\s*,\s*6\s*\)\s*\]/.test(code);
+    },
+  },
+  // Java Challenges
+  {
+    id: 'java-hello-world',
+    title: 'Java: Hello, World!',
+    description: 'Write a Java program that prints "Hello, Java!" to the console inside the main method.',
+    template: `public class Main {\n  public static void main(String[] args) {\n    // Your code here\n  }\n}`,
+    language: 'java',
+    test: (code: string) => {
+      return /System\.out\.println\(['"]Hello, Java!['"]\);/.test(code.replace(/\s/g, ''));
+    },
+  },
+  {
+    id: 'java-sum-variables',
+    title: 'Java: Sum of Two Numbers',
+    description: 'Declare two integer variables, `a` and `b`, assign them values, and print their sum.',
+    template: `public class Main {\n  public static void main(String[] args) {\n    int a = 5;\n    int b = 10;\n    // Your code here to print the sum\n  }\n}`,
+    language: 'java',
+    test: (code: string) => {
+      return /System\.out\.println\(\s*a\s*\+\s*b\s*\);/.test(code.replace(/\s/g, ''));
+    },
+  },
+  {
+    id: 'java-string-length',
+    title: 'Java: String Length',
+    description: 'Create a string variable and print its length to the console.',
+    template: `public class Main {\n  public static void main(String[] args) {\n    String myString = "CodeLeap";\n    // Your code here to print the length\n  }\n}`,
+    language: 'java',
+    test: (code: string) => {
+      return /System\.out\.println\(myString\.length\(\)\);/.test(code.replace(/\s/g, ''));
+    },
+  },
   // JavaScript Challenges
   {
     id: 'sum-array',
@@ -311,6 +378,8 @@ const challenges = [
 
 const languageOptions = [
   { value: 'c', label: 'C' },
+  { value: 'python', label: 'Python' },
+  { value: 'java', label: 'Java' },
   { value: 'javascript', label: 'JavaScript' },
   { value: 'html', label: 'HTML' },
   { value: 'css', label: 'CSS' },
@@ -329,9 +398,9 @@ export default function CodingChallenges() {
     [selectedLanguage]
   );
   
-  const [activeChallengeId, setActiveChallengeId] = useState(filteredChallenges[0].id);
-  const activeChallenge = challenges.find((c) => c.id === activeChallengeId)!;
-  const [code, setCode] = useState(activeChallenge.template);
+  const [activeChallengeId, setActiveChallengeId] = useState(filteredChallenges.length > 0 ? filteredChallenges[0].id : '');
+  const activeChallenge = challenges.find((c) => c.id === activeChallengeId);
+  const [code, setCode] = useState(activeChallenge ? activeChallenge.template : '');
   const [testResult, setTestResult] = useState<TestResult>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [emojiBlast, setEmojiBlast] = useState<string | null>(null);
@@ -341,6 +410,8 @@ export default function CodingChallenges() {
     const newFilteredChallenges = challenges.filter((c) => c.language === selectedLanguage);
     if (newFilteredChallenges.length > 0) {
       setActiveChallengeId(newFilteredChallenges[0].id);
+    } else {
+      setActiveChallengeId('');
     }
   }, [selectedLanguage]);
 
@@ -348,9 +419,12 @@ export default function CodingChallenges() {
     const newChallenge = challenges.find((c) => c.id === activeChallengeId);
     if (newChallenge) {
       setCode(newChallenge.template);
+    } else {
+      setCode('');
     }
     setTestResult(null);
   }, [activeChallengeId]);
+
 
   useEffect(() => {
     if (emojiBlast) {
@@ -368,6 +442,7 @@ export default function CodingChallenges() {
   };
 
   const handleRunTests = () => {
+    if (!activeChallenge) return;
     setIsRunning(true);
     setTestResult(null);
     setEmojiBlast(null);
@@ -394,6 +469,40 @@ export default function CodingChallenges() {
       }
     }, 1000);
   };
+  
+  if (!activeChallenge) {
+      return (
+         <div className="flex flex-col gap-6 relative">
+             <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-bold font-headline">Coding Challenges</h1>
+                <p className="text-muted-foreground">Test your skills with our coding challenges.</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium">Select Language:</span>
+                   <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select a language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languageOptions.map((lang) => (
+                        <SelectItem key={lang.value} value={lang.value}>
+                          {lang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Card>
+                <CardHeader>
+                    <CardTitle>No challenges available</CardTitle>
+                    <CardDescription>Please select a different language.</CardDescription>
+                </CardHeader>
+              </Card>
+         </div>
+      );
+  }
 
   return (
     <div className="flex flex-col gap-6 relative">
