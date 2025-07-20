@@ -298,8 +298,12 @@ type TestResult = {
 
 export default function CodingChallenges() {
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('c');
-  const [selectedCategory, setSelectedCategory] = useState<string>(Object.keys(challenges[selectedLanguage])[0]);
-  const [activeChallengeId, setActiveChallengeId] = useState<string>(challenges[selectedLanguage][selectedCategory][0].id);
+  
+  const defaultCategory = Object.keys(challenges[selectedLanguage])[0];
+  const defaultChallenge = challenges[selectedLanguage][defaultCategory][0];
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory);
+  const [activeChallengeId, setActiveChallengeId] = useState<string>(defaultChallenge.id);
 
   const activeChallenge = useMemo(() => {
     return challenges[selectedLanguage]?.[selectedCategory]?.find(c => c.id === activeChallengeId);
@@ -310,37 +314,38 @@ export default function CodingChallenges() {
   const [isRunning, setIsRunning] = useState(false);
   const [emojiBlast, setEmojiBlast] = useState<string | null>(null);
 
+  // Safely update category and challenge when language changes
   useEffect(() => {
     const newCategories = challenges[selectedLanguage];
     const firstCategory = Object.keys(newCategories)[0];
     setSelectedCategory(firstCategory);
-    const firstChallengeId = newCategories[firstCategory][0].id;
-    setActiveChallengeId(firstChallengeId);
+    
+    const firstChallengeId = newCategories[firstCategory]?.[0]?.id;
+    if (firstChallengeId) {
+        setActiveChallengeId(firstChallengeId);
+    } else {
+        setActiveChallengeId('');
+    }
   }, [selectedLanguage]);
 
+  // Safely update challenge when category changes
   useEffect(() => {
-    const newChallenges = challenges[selectedLanguage][selectedCategory];
-    if (newChallenges && newChallenges.length > 0) {
-      const firstChallengeId = newChallenges[0].id;
+    const newChallenges = challenges[selectedLanguage]?.[selectedCategory] || [];
+    const firstChallengeId = newChallenges[0]?.id;
+    if (firstChallengeId) {
       setActiveChallengeId(firstChallengeId);
     } else {
         setActiveChallengeId('');
     }
   }, [selectedCategory, selectedLanguage]);
   
+  // Update code and clear results when the challenge changes
   useEffect(() => {
     if (activeChallenge) {
       setCode(activeChallenge.template);
       setTestResult(null);
     } else {
-        const firstCategory = Object.keys(challenges[selectedLanguage])[0];
-        const firstChallenge = challenges[selectedLanguage][firstCategory][0];
-        if (firstChallenge) {
-            setActiveChallengeId(firstChallenge.id);
-            setCode(firstChallenge.template);
-        } else {
-            setCode('');
-        }
+      setCode('');
     }
   }, [activeChallengeId, activeChallenge]);
 
@@ -394,7 +399,7 @@ export default function CodingChallenges() {
   };
   
   const currentCategories = Object.keys(challenges[selectedLanguage]);
-  const currentChallenges = challenges[selectedLanguage][selectedCategory] || [];
+  const currentChallenges = challenges[selectedLanguage]?.[selectedCategory] || [];
 
   if (!activeChallenge) {
       return (
@@ -531,5 +536,3 @@ export default function CodingChallenges() {
     </div>
   );
 }
-
-    
