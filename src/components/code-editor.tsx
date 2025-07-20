@@ -20,6 +20,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CCompiler from './c-compiler';
+import PythonRunner from './python-runner';
+import JavaRunner from './java-runner';
 import { cn } from '@/lib/utils';
 
 const defaultCodes = {
@@ -83,10 +85,19 @@ console.log("Hello, CodeLeap!");`,
 int main() {
     printf("Hello, C!");
     return 0;
+}`,
+  python: `def greet(name):
+    print(f"Hello, {name}!")
+
+greet("Python")`,
+  java: `public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello, Java!");
+    }
 }`
 };
 
-type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'c';
+type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'c' | 'python' | 'java';
 type FileType = 'html' | 'css' | 'javascript';
 
 export default function CodeEditor() {
@@ -194,7 +205,7 @@ export default function CodeEditor() {
   };
 
   const handleSingleFileChange = (value: string) => {
-    if (selectedLanguage !== 'frontend' && selectedLanguage !== 'c') {
+    if (selectedLanguage !== 'frontend') {
       setCodes(prev => ({ ...prev, [selectedLanguage]: value }));
     }
   };
@@ -215,7 +226,7 @@ export default function CodeEditor() {
         codeToDebug = codes.frontend[activeTab];
         langToDebug = activeTab;
       } else {
-        codeToDebug = codes[selectedLanguage];
+        codeToDebug = codes[selectedLanguage as Exclude<Language, 'frontend'>];
       }
       const result = await debugCode({ code: codeToDebug, language: langToDebug });
       setDebugResult(result.suggestions);
@@ -236,7 +247,7 @@ export default function CodeEditor() {
     }
     
     setIsActionLoading(true);
-    const codeToSave = selectedLanguage === 'frontend' ? JSON.stringify(codes.frontend) : codes[selectedLanguage as keyof typeof codes];
+    const codeToSave = selectedLanguage === 'frontend' ? JSON.stringify(codes.frontend) : codes[selectedLanguage as Exclude<Language, 'frontend'>];
     const snippetData: SnippetData = { name: snippetName, language: selectedLanguage, code: codeToSave };
 
     try {
@@ -258,19 +269,21 @@ export default function CodeEditor() {
 
   const handleLoadSnippet = (snippet: Snippet) => {
     try {
-      setSelectedLanguage(snippet.language as Language);
-      if (snippet.language === 'frontend') {
+      const lang = snippet.language as Language;
+      setSelectedLanguage(lang);
+      if (lang === 'frontend') {
         const loadedCodes = JSON.parse(snippet.code);
         if (loadedCodes.html !== undefined && loadedCodes.css !== undefined && loadedCodes.javascript !== undefined) {
           setCodes(prev => ({ ...prev, frontend: loadedCodes }));
         } else {
           throw new Error("Invalid project format.");
         }
-      } else if (snippet.language === 'c') {
-         // C compiler handles its own state, but we can update the shared state if needed.
-         // For now, switching language to 'c' is enough as CCompiler component will be rendered.
-      } else {
-        setCodes(prev => ({ ...prev, [snippet.language]: snippet.code }));
+      } else if (['c', 'python', 'java'].includes(lang)) {
+        // Runner components handle their own state, but we can update the shared state
+        setCodes(prev => ({ ...prev, [lang]: snippet.code }));
+      }
+      else {
+        setCodes(prev => ({ ...prev, [lang]: snippet.code }));
       }
       toast({ title: 'Snippet Loaded', description: `"${snippet.name}" has been loaded into the editor.` });
       setIsLoadOpen(false);
@@ -340,11 +353,19 @@ export default function CodeEditor() {
     if (selectedLanguage === 'c') {
       return <CCompiler />;
     }
+    if (selectedLanguage === 'python') {
+      return <PythonRunner />;
+    }
+    if (selectedLanguage === 'java') {
+      return <JavaRunner />;
+    }
+
+    const isWebPreviewable = ['frontend', 'html'].includes(selectedLanguage);
 
     return (
       <div className={cn(
           "grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]",
-          isPreviewVisible && "md:grid-cols-2"
+          isPreviewVisible && isWebPreviewable && "md:grid-cols-2"
         )}>
         <Card className="flex flex-col h-[60vh] md:h-full">
           {selectedLanguage === 'frontend' ? (
@@ -375,7 +396,7 @@ export default function CodeEditor() {
                 <CardTitle>{selectedLanguage.toUpperCase()} Editor</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col gap-4">
-                <Textarea value={codes[selectedLanguage as keyof typeof codes]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
+                <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
               </CardContent>
             </>
           )}
@@ -400,7 +421,7 @@ export default function CodeEditor() {
           </div>
         </Card>
         
-        {isPreviewVisible && (
+        {isWebPreviewable && isPreviewVisible && (
             <Card className="flex flex-col h-[60vh] md:h-full">
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Preview</CardTitle>
@@ -414,7 +435,7 @@ export default function CodeEditor() {
             </Card>
         )}
 
-        {!isPreviewVisible && (
+        {isWebPreviewable && !isPreviewVisible && (
             <div className="absolute top-0 right-4">
                  <TooltipProvider>
                     <Tooltip>
@@ -448,6 +469,8 @@ export default function CodeEditor() {
                         <SelectItem value="html">HTML</SelectItem>
                         <SelectItem value="css">CSS</SelectItem>
                         <SelectItem value="javascript">JavaScript</SelectItem>
+                        <SelectItem value="python">Python</SelectItem>
+                        <SelectItem value="java">Java</SelectItem>
                         <SelectItem value="c">C Language</SelectItem>
                     </SelectContent>
                 </Select>
