@@ -14,13 +14,14 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
 import CodingChallenges from '@/components/coding-challenges';
 import FeedbackForm from '@/components/feedback-form';
 import SettingsPage, { SettingsProvider } from '@/components/settings';
+import QaSessions from '@/components/qa-sessions';
 import { Toaster } from './ui/toaster';
 import { useAuth, signOut } from '@/lib/firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -36,7 +37,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
-type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings';
+type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings' | 'qa';
 
 const defaultCodes = {
   frontend: {
@@ -220,6 +221,8 @@ export function MainLayout() {
         return <FeedbackForm />;
       case 'settings':
         return <SettingsPage />;
+      case 'qa':
+        return <QaSessions />;
       default:
         return <CodeEditor codes={codes} setCodes={setCodes}/>;
     }
@@ -260,6 +263,16 @@ export function MainLayout() {
                 >
                   <Trophy />
                   <span>Challenges</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveView('qa')}
+                  isActive={activeView === 'qa'}
+                  tooltip="Q&amp;A Sessions"
+                >
+                  <Mic />
+                  <span>Q&amp;A Sessions</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
