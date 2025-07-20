@@ -259,8 +259,7 @@ export default function LoginPage() {
                   {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
                   Google
               </Button>
-               <Tabs defaultValue="phone">
-                <TabsContent value="phone" className="m-0">
+               <div>
                   {phoneSignInStep === 'phone' ? (
                      <Form {...phoneForm}>
                         <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="flex gap-2">
@@ -290,8 +289,7 @@ export default function LoginPage() {
                         </form>
                      </Form>
                   )}
-                </TabsContent>
-               </Tabs>
+                </div>
           </div>
         </CardContent>
       </Card>
