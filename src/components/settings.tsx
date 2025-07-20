@@ -1,16 +1,45 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext, ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTheme } from 'next-themes';
 import { Switch } from '@/components/ui/switch';
 
+// 1. Create a Context for settings
+interface SettingsContextType {
+  isAiSuggestionsEnabled: boolean;
+  setIsAiSuggestionsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+
+// 2. Create a Provider component
+export function SettingsProvider({ children }: { children: ReactNode }) {
+  const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(false);
+
+  return (
+    <SettingsContext.Provider value={{ isAiSuggestionsEnabled, setIsAiSuggestionsEnabled }}>
+      {children}
+    </SettingsContext.Provider>
+  );
+}
+
+// 3. Create a custom hook to use the settings context
+export function useSettings() {
+  const context = useContext(SettingsContext);
+  if (context === undefined) {
+    throw new Error('useSettings must be used within a SettingsProvider');
+  }
+  return context;
+}
+
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(false);
+  // 4. Use the context to manage state
+  const { isAiSuggestionsEnabled, setIsAiSuggestionsEnabled } = useSettings();
 
   return (
     <div className="flex flex-col gap-6">

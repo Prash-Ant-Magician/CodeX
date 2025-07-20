@@ -20,7 +20,7 @@ import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
 import CodingChallenges from '@/components/coding-challenges';
 import FeedbackForm from '@/components/feedback-form';
-import SettingsPage from '@/components/settings';
+import SettingsPage, { SettingsProvider } from '@/components/settings';
 import { Toaster } from './ui/toaster';
 import { useAuth, signOut } from '@/lib/firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -149,69 +149,71 @@ export function MainLayout() {
   };
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeaderContent />
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setActiveView('editor')}
-                isActive={activeView === 'editor'}
-                tooltip="Code Editor"
-              >
-                <Code />
-                <span>Code Editor</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setActiveView('learn')}
-                isActive={activeView === 'learn'}
-                tooltip="Learning Modules"
-              >
-                <BookOpen />
-                <span>Learn</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setActiveView('challenges')}
-                isActive={activeView === 'challenges'}
-                tooltip="Coding Challenges"
-              >
-                <Trophy />
-                <span>Challenges</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setActiveView('feedback')}
-                isActive={activeView === 'feedback'}
-                tooltip="Feedback"
-              >
-                <MessageSquare />
-                <span>Feedback</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setActiveView('settings')}
-                isActive={activeView === 'settings'}
-                tooltip="Settings"
-              >
-                <Settings />
-                <span>Settings</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <MainHeaderContent />
-        <div className="p-4 md:p-6">{renderContent()}</div>
-      </SidebarInset>
-      <Toaster />
-    </SidebarProvider>
+    <SettingsProvider>
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarHeaderContent />
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveView('editor')}
+                  isActive={activeView === 'editor'}
+                  tooltip="Code Editor"
+                >
+                  <Code />
+                  <span>Code Editor</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveView('learn')}
+                  isActive={activeView === 'learn'}
+                  tooltip="Learning Modules"
+                >
+                  <BookOpen />
+                  <span>Learn</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveView('challenges')}
+                  isActive={activeView === 'challenges'}
+                  tooltip="Coding Challenges"
+                >
+                  <Trophy />
+                  <span>Challenges</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveView('feedback')}
+                  isActive={activeView === 'feedback'}
+                  tooltip="Feedback"
+                >
+                  <MessageSquare />
+                  <span>Feedback</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveView('settings')}
+                  isActive={activeView === 'settings'}
+                  tooltip="Settings"
+                >
+                  <Settings />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+        <SidebarInset>
+          <MainHeaderContent />
+          <div className="p-4 md:p-6">{renderContent()}</div>
+        </SidebarInset>
+        <Toaster />
+      </SidebarProvider>
+    </SettingsProvider>
   );
 }
