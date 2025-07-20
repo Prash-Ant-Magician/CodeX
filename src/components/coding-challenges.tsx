@@ -1,13 +1,15 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/lib/firebase/auth';
+import { getCompletedChallenges, markChallengeAsCompleted, getLocalCompletedChallenges, markLocalChallengeAsCompleted } from '@/lib/challenge-progress';
 
 const playSuccessSound = () => {
   if (typeof window !== 'undefined' && window.AudioContext) {
@@ -438,6 +440,7 @@ type TestResult = {
 } | null;
 
 export default function CodingChallenges() {
+  const { user } = useAuth();
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('c');
   
   const defaultCategory = Object.keys(challenges[selectedLanguage])[0];
@@ -445,6 +448,8 @@ export default function CodingChallenges() {
 
   const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory);
   const [activeChallengeId, setActiveChallengeId] = useState<string>(defaultChallenge.id);
+
+  const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(new Set());
 
   const activeChallenge = useMemo(() => {
     return challenges[selectedLanguage]?.[selectedCategory]?.find(c => c.id === activeChallengeId);
@@ -454,6 +459,21 @@ export default function CodingChallenges() {
   const [testResult, setTestResult] = useState<TestResult>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [emojiBlast, setEmojiBlast] = useState<string | null>(null);
+
+  const fetchProgress = useCallback(async () => {
+    if (user) {
+      const completed = await getCompletedChallenges(user.uid);
+      setCompletedChallenges(new Set(completed));
+    } else {
+      const completed = getLocalCompletedChallenges();
+      setCompletedChallenges(new Set(completed));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress]);
+
 
   // Safely update category and challenge when language changes
   useEffect(() => {
@@ -516,13 +536,22 @@ export default function CodingChallenges() {
     setTestResult(null);
     setEmojiBlast(null);
     
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         const success = activeChallenge.test(code);
         if (success) {
           setTestResult({ status: 'success', message: 'All tests passed! Great job!' });
           setEmojiBlast('😊');
           playSuccessSound();
+          
+          if (!completedChallenges.has(activeChallenge.id)) {
+            if (user) {
+              await markChallengeAsCompleted(user.uid, activeChallenge.id);
+            } else {
+              markLocalChallengeAsCompleted(activeChallenge.id);
+            }
+            fetchProgress(); // Re-fetch to update the state and UI
+          }
         } else {
           setTestResult({ status: 'failure', message: 'Test failed. Hint: Check for edge cases and syntax.' });
           setEmojiBlast('😢');
@@ -629,7 +658,10 @@ export default function CodingChallenges() {
             <SelectContent>
               {currentChallenges.map((challenge) => (
                 <SelectItem key={challenge.id} value={challenge.id}>
-                  {challenge.title}
+                  <div className="flex items-center gap-2">
+                     {completedChallenges.has(challenge.id) && <CheckCircle className="h-4 w-4 text-green-500" />}
+                     <span>{challenge.title}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
