@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, MessageSquare, ThumbsUp, Trash, Loader2 } from "lucide-react";
+import { PlusCircle, MessageSquare, Loader2 } from "lucide-react";
 import { useAuth } from '@/lib/firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { getPosts, createPost, Post, PostData } from '@/lib/forum';
@@ -56,19 +56,15 @@ export default function CommunityForum() {
   }, [fetchPosts]);
 
   const handleCreatePost = async (values: z.infer<typeof postSchema>) => {
-    if (!user) {
-      toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to create a post." });
-      return;
-    }
     setIsSubmitting(true);
     try {
       const postData: PostData = {
         title: values.title,
         content: values.content,
         tags: values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-        authorId: user.uid,
-        authorName: user.displayName || user.email || "Anonymous",
-        authorPhotoURL: user.photoURL
+        authorId: user?.uid || 'anonymous',
+        authorName: user?.displayName || user?.email || "Anonymous",
+        authorPhotoURL: user?.photoURL || null
       };
       await createPost(postData);
       toast({ title: "Success", description: "Your post has been created." });
@@ -89,7 +85,7 @@ export default function CommunityForum() {
           <h1 className="text-3xl font-bold font-headline">Community Forum</h1>
           <p className="text-muted-foreground">Discuss topics, ask questions, and share your knowledge with the community.</p>
         </div>
-        <Button onClick={() => setIsCreatePostOpen(true)} disabled={!user}>
+        <Button onClick={() => setIsCreatePostOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Create Post
         </Button>

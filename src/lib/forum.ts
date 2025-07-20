@@ -11,9 +11,8 @@ import {
     orderBy, 
     serverTimestamp, 
     Timestamp,
-    where
+    runTransaction
 } from 'firebase/firestore';
-import { User } from 'firebase/auth';
 
 // Data Structures
 export interface PostData {
@@ -106,20 +105,25 @@ export const deletePost = async (postId: string): Promise<void> => {
 
 export const createComment = async (postId: string, commentData: CommentData): Promise<void> => {
     try {
-        const commentsCollection = collection(db, POSTS_COLLECTION, postId, COMMENTS_COLLECTION);
-        await addDoc(commentsCollection, {
-            ...commentData,
-            createdAt: serverTimestamp(),
+        const postDocRef = doc(db, POSTS_COLLECTION, postId);
+        const commentsCollectionRef = collection(postDocRef, COMMENTS_COLLECTION);
+
+        await runTransaction(db, async (transaction) => {
+            const postDoc = await transaction.get(postDocRef);
+            if (!postDoc.exists()) {
+                throw "Post does not exist!";
+            }
+
+            // Add the new comment
+            transaction.set(doc(commentsCollectionRef), {
+                ...commentData,
+                createdAt: serverTimestamp(),
+            });
+
+            // Increment the comment count
+            const newCommentCount = (postDoc.data().commentCount || 0) + 1;
+            transaction.update(postDocRef, { commentCount: newCommentCount });
         });
-
-        // This would be better as a cloud function to avoid race conditions
-        const postDoc = doc(db, POSTS_COLLECTION, postId);
-        const postSnap = await getDoc(postDoc);
-        if (postSnap.exists()) {
-            const currentCount = postSnap.data().commentCount || 0;
-            await addDoc(collection(db, `posts/${postId}/comments`), { ...commentData, createdAt: serverTimestamp() });
-        }
-
     } catch (error) {
         console.error("Error creating comment:", error);
         throw new Error("Could not create comment.");

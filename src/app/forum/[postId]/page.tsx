@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Form, FormMessage } from '@/components/ui/form';
 
 const commentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty."),
@@ -62,14 +63,13 @@ export default function PostPage() {
   }, [fetchPostAndComments]);
 
   const handleCreateComment = async (values: z.infer<typeof commentSchema>) => {
-    if (!user) return;
     setIsSubmitting(true);
     try {
       const commentData: CommentData = {
         content: values.content,
-        authorId: user.uid,
-        authorName: user.displayName || user.email || "Anonymous",
-        authorPhotoURL: user.photoURL
+        authorId: user?.uid || 'anonymous',
+        authorName: user?.displayName || user?.email || "Anonymous",
+        authorPhotoURL: user?.photoURL || null
       };
       await createComment(postId, commentData);
       form.reset();
@@ -161,27 +161,21 @@ export default function PostPage() {
 
       <div className="flex flex-col gap-4">
         <h3 className="text-xl font-bold">Comments ({comments.length})</h3>
-        {user ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleCreateComment)} className="flex gap-2 items-start">
-                <Avatar className="h-10 w-10 mt-1">
-                    <AvatarImage src={user.photoURL || undefined} />
-                    <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-grow">
-                    <Textarea {...form.register("content")} placeholder="Add your comment..." className="w-full" />
-                    {form.formState.errors.content && <p className="text-sm text-destructive mt-1">{form.formState.errors.content.message}</p>}
-                </div>
-              <Button type="submit" disabled={isSubmitting} size="icon">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </form>
-          </Form>
-        ) : (
-          <p className="text-muted-foreground text-center p-4 border rounded-md">
-            You must be <Link href="/login" className="text-primary underline">logged in</Link> to post a comment.
-          </p>
-        )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleCreateComment)} className="flex gap-2 items-start">
+              <Avatar className="h-10 w-10 mt-1">
+                  <AvatarImage src={user?.photoURL || undefined} />
+                  <AvatarFallback>{user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A'}</AvatarFallback>
+              </Avatar>
+              <div className="flex-grow">
+                  <Textarea {...form.register("content")} placeholder="Add your comment..." className="w-full" />
+                  <FormMessage>{form.formState.errors.content?.message}</FormMessage>
+              </div>
+            <Button type="submit" disabled={isSubmitting} size="icon">
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </form>
+        </Form>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -219,4 +213,3 @@ export default function PostPage() {
     </div>
   );
 }
-
