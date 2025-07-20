@@ -29,17 +29,26 @@ export default function CCompiler() {
   const [result, setResult] = useState<CompilationResult | null>(null);
   const { toast } = useToast();
 
-  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab') {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const target = e.target as HTMLTextAreaElement;
+    const { selectionStart, value } = target;
+    const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
+    const key = e.key as keyof typeof bracketPairs;
+
+    if (key in bracketPairs) {
       e.preventDefault();
-      const target = e.target as HTMLTextAreaElement;
-      const start = target.selectionStart;
-      const end = target.selectionEnd;
-      const value = target.value;
-      const newValue = value.substring(0, start) + '  ' + value.substring(end);
+      const closingBracket = bracketPairs[key];
+      const newValue = value.substring(0, selectionStart) + key + closingBracket + value.substring(selectionStart);
       setCode(newValue);
       setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + 2;
+        target.selectionStart = target.selectionEnd = selectionStart + 1;
+      }, 0);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const newValue = value.substring(0, selectionStart) + '  ' + value.substring(target.selectionEnd);
+      setCode(newValue);
+      setTimeout(() => {
+        target.selectionStart = target.selectionEnd = selectionStart + 2;
       }, 0);
     }
   };
@@ -69,7 +78,7 @@ export default function CCompiler() {
                  <Textarea
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    onKeyDown={handleTabKeyDown}
+                    onKeyDown={handleKeyDown}
                     className="flex-1 font-code text-sm bg-muted/50 resize-none h-full"
                     placeholder="Write your C code here..."
                 />

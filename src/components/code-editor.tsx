@@ -110,22 +110,29 @@ export default function CodeEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
-  const handleTabKeyDown = (
+  const handleKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
     updateFn: (newValue: string) => void
   ) => {
-    if (e.key === 'Tab') {
+    const target = e.target as HTMLTextAreaElement;
+    const { selectionStart, value } = target;
+    const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
+    const key = e.key as keyof typeof bracketPairs;
+
+    if (key in bracketPairs) {
       e.preventDefault();
-      const target = e.target as HTMLTextAreaElement;
-      const start = target.selectionStart;
-      const end = target.selectionEnd;
-      const value = target.value;
-      const newValue = value.substring(0, start) + '  ' + value.substring(end);
+      const closingBracket = bracketPairs[key];
+      const newValue = value.substring(0, selectionStart) + key + closingBracket + value.substring(selectionStart);
       updateFn(newValue);
-      // After updating the value, we need to manually set the cursor position
-      // We use a timeout to ensure the cursor is updated after React re-renders.
       setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + 2;
+        target.selectionStart = target.selectionEnd = selectionStart + 1;
+      }, 0);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const newValue = value.substring(0, selectionStart) + '  ' + value.substring(target.selectionEnd);
+      updateFn(newValue);
+      setTimeout(() => {
+        target.selectionStart = target.selectionEnd = selectionStart + 2;
       }, 0);
     }
   };
@@ -352,13 +359,13 @@ export default function CodeEditor() {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col gap-4">
                 <TabsContent value="html" className="flex-1 m-0">
-                  <Textarea value={codes.frontend.html} onChange={(e) => handleCodeChange('html', e.target.value)} onKeyDown={(e) => handleTabKeyDown(e, (val) => handleCodeChange('html', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your HTML here..." />
+                  <Textarea value={codes.frontend.html} onChange={(e) => handleCodeChange('html', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('html', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your HTML here..." />
                 </TabsContent>
                 <TabsContent value="css" className="flex-1 m-0">
-                  <Textarea value={codes.frontend.css} onChange={(e) => handleCodeChange('css', e.target.value)} onKeyDown={(e) => handleTabKeyDown(e, (val) => handleCodeChange('css', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your CSS here..." />
+                  <Textarea value={codes.frontend.css} onChange={(e) => handleCodeChange('css', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('css', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your CSS here..." />
                 </TabsContent>
                 <TabsContent value="javascript" className="flex-1 m-0">
-                  <Textarea value={codes.frontend.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} onKeyDown={(e) => handleTabKeyDown(e, (val) => handleCodeChange('javascript', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your JavaScript here..." />
+                  <Textarea value={codes.frontend.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('javascript', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your JavaScript here..." />
                 </TabsContent>
               </CardContent>
             </Tabs>
@@ -368,7 +375,7 @@ export default function CodeEditor() {
                 <CardTitle>{selectedLanguage.toUpperCase()} Editor</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col gap-4">
-                <Textarea value={codes[selectedLanguage as keyof typeof codes]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleTabKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
+                <Textarea value={codes[selectedLanguage as keyof typeof codes]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
               </CardContent>
             </>
           )}
