@@ -13,20 +13,18 @@ import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
-const defaultCode = `public class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello, Java World!");
-    }
-}`;
-
 interface RunResult {
     compilationOutput: string;
     success: boolean;
     executionOutput?: string;
 }
 
-export default function JavaRunner() {
-  const [code, setCode] = useState(defaultCode);
+interface JavaRunnerProps {
+    code: string;
+    setCode: (code: string) => void;
+}
+
+export default function JavaRunner({ code, setCode }: JavaRunnerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
@@ -87,7 +85,7 @@ export default function JavaRunner() {
   };
 
   const handleInsertSuggestion = () => {
-    setCode(prev => prev + suggestion);
+    setCode(code + suggestion);
     setSuggestion('');
   };
 

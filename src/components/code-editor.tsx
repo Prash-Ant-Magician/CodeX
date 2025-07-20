@@ -86,26 +86,28 @@ console.log("Hello, CodeLeap!");`,
   c: `#include <stdio.h>
 
 int main() {
-    printf("Hello, C!");
+    printf("Hello, C World!\\n");
     return 0;
 }`,
   python: `def greet(name):
     print(f"Hello, {name}!")
 
-greet("Python")`,
+greet("Python World")`,
   java: `public class HelloWorld {
     public static void main(String[] args) {
-        System.out.println("Hello, Java!");
+        System.out.println("Hello, Java World!");
     }
 }`
 };
 
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'c' | 'python' | 'java';
 type FileType = 'html' | 'css' | 'javascript';
+type AllCodes = typeof defaultCodes;
+
 
 export default function CodeEditor() {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('frontend');
-  const [codes, setCodes] = useState(defaultCodes);
+  const [codes, setCodes] = useState<AllCodes>(defaultCodes);
   const [activeTab, setActiveTab] = useState<FileType>('html');
   const [previewDoc, setPreviewDoc] = useState('');
   const [isDebugging, setIsDebugging] = useState(false);
@@ -284,11 +286,7 @@ export default function CodeEditor() {
         } else {
           throw new Error("Invalid project format.");
         }
-      } else if (['c', 'python', 'java'].includes(lang)) {
-        // Runner components handle their own state, but we can update the shared state
-        setCodes(prev => ({ ...prev, [lang]: snippet.code }));
-      }
-      else {
+      } else {
         setCodes(prev => ({ ...prev, [lang]: snippet.code }));
       }
       toast({ title: 'Snippet Loaded', description: `"${snippet.name}" has been loaded into the editor.` });
@@ -388,144 +386,142 @@ export default function CodeEditor() {
   };
 
   const renderEditor = () => {
-    if (selectedLanguage === 'c') {
-      return <CCompiler />;
-    }
-    if (selectedLanguage === 'python') {
-      return <PythonRunner />;
-    }
-    if (selectedLanguage === 'java') {
-      return <JavaRunner />;
-    }
-
-    const isWebPreviewable = ['frontend', 'html'].includes(selectedLanguage);
-
-    return (
-      <div className={cn(
-          "grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]",
-          isPreviewVisible && isWebPreviewable && "md:grid-cols-2"
-        )}>
-        <Card className="flex flex-col h-[60vh] md:h-full">
-          {selectedLanguage === 'frontend' ? (
-            <Tabs<string> defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
-              <CardHeader className="flex-row items-center justify-between">
-                <CardTitle>Editor</CardTitle>
-                <TabsList>
-                  <TabsTrigger value="html">index.html</TabsTrigger>
-                  <TabsTrigger value="css">style.css</TabsTrigger>
-                  <TabsTrigger value="javascript">script.js</TabsTrigger>
-                </TabsList>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col gap-4">
-                <TabsContent value="html" className="flex-1 m-0">
-                  <Textarea value={codes.frontend.html} onChange={(e) => handleCodeChange('html', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('html', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your HTML here..." />
-                </TabsContent>
-                <TabsContent value="css" className="flex-1 m-0">
-                  <Textarea value={codes.frontend.css} onChange={(e) => handleCodeChange('css', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('css', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your CSS here..." />
-                </TabsContent>
-                <TabsContent value="javascript" className="flex-1 m-0">
-                  <Textarea value={codes.frontend.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('javascript', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your JavaScript here..." />
-                </TabsContent>
-              </CardContent>
-            </Tabs>
-          ) : (
-            <>
-              <CardHeader>
-                <CardTitle>{selectedLanguage.toUpperCase()} Editor</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col gap-4">
-                <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
-              </CardContent>
-            </>
-          )}
-
-          <div className="p-6 pt-0 flex flex-wrap gap-2 justify-between">
-            <div className="flex flex-wrap gap-2">
-                <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css' || selectedLanguage === 'javascript'}>
-                  <Play className="mr-2 h-4 w-4" /> Run
-                </Button>
-                <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
-                  {isDebugging ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Debugging...</> : <><Bug className="mr-2 h-4 w-4" /> Debug</>}
-                </Button>
-                 <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
-                </Button>
-                 {isAiSuggestionsEnabled && (
-                    <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
-                        <PopoverTrigger asChild>
-                           <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting}>
-                                {isSuggesting ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Lightbulb className="mr-2 h-4 w-4" />
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80">
-                           {isSuggesting ? (
-                                <div className="flex items-center justify-center">
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
-                                </div>
-                            ) : suggestion ? (
-                                <div className="grid gap-4">
-                                  <div className="space-y-2">
-                                    <h4 className="font-medium leading-none">Suggestion</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      Here's a suggestion from the AI.
-                                    </p>
-                                  </div>
-                                  <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                                  <Button onClick={handleInsertSuggestion} size="sm">
-                                    <CornerDownLeft className="mr-2 h-4 w-4" /> Insert
-                                  </Button>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">Click the button to get a suggestion.</p>
+    switch (selectedLanguage) {
+        case 'c':
+            return <CCompiler code={codes.c} setCode={(c) => setCodes(p => ({...p, c: c}))} />;
+        case 'python':
+            return <PythonRunner code={codes.python} setCode={(c) => setCodes(p => ({...p, python: c}))} />;
+        case 'java':
+            return <JavaRunner code={codes.java} setCode={(c) => setCodes(p => ({...p, java: c}))} />;
+        default:
+            const isWebPreviewable = ['frontend', 'html'].includes(selectedLanguage);
+            return (
+                <div className={cn(
+                    "grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]",
+                    isPreviewVisible && isWebPreviewable && "md:grid-cols-2"
+                  )}>
+                  <Card className="flex flex-col h-[60vh] md:h-full">
+                    {selectedLanguage === 'frontend' ? (
+                      <Tabs<string> defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
+                        <CardHeader className="flex-row items-center justify-between">
+                          <CardTitle>Editor</CardTitle>
+                          <TabsList>
+                            <TabsTrigger value="html">index.html</TabsTrigger>
+                            <TabsTrigger value="css">style.css</TabsTrigger>
+                            <TabsTrigger value="javascript">script.js</TabsTrigger>
+                          </TabsList>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col gap-4">
+                          <TabsContent value="html" className="flex-1 m-0">
+                            <Textarea value={codes.frontend.html} onChange={(e) => handleCodeChange('html', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('html', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your HTML here..." />
+                          </TabsContent>
+                          <TabsContent value="css" className="flex-1 m-0">
+                            <Textarea value={codes.frontend.css} onChange={(e) => handleCodeChange('css', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('css', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your CSS here..." />
+                          </TabsContent>
+                          <TabsContent value="javascript" className="flex-1 m-0">
+                            <Textarea value={codes.frontend.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('javascript', val))} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder="Write your JavaScript here..." />
+                          </TabsContent>
+                        </CardContent>
+                      </Tabs>
+                    ) : (
+                      <>
+                        <CardHeader>
+                          <CardTitle>{selectedLanguage.toUpperCase()} Editor</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col gap-4">
+                          <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className="flex-1 font-code text-sm bg-muted/50 resize-none h-full" placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
+                        </CardContent>
+                      </>
+                    )}
+          
+                    <div className="p-6 pt-0 flex flex-wrap gap-2 justify-between">
+                      <div className="flex flex-wrap gap-2">
+                          <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css' || selectedLanguage === 'javascript'}>
+                            <Play className="mr-2 h-4 w-4" /> Run
+                          </Button>
+                          <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
+                            {isDebugging ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Debugging...</> : <><Bug className="mr-2 h-4 w-4" /> Debug</>}
+                          </Button>
+                           <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                              <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
+                          </Button>
+                           {isAiSuggestionsEnabled && (
+                              <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
+                                  <PopoverTrigger asChild>
+                                     <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting}>
+                                          {isSuggesting ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                              <Lightbulb className="mr-2 h-4 w-4" />
+                                          )}
+                                      </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80">
+                                     {isSuggesting ? (
+                                          <div className="flex items-center justify-center">
+                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
+                                          </div>
+                                      ) : suggestion ? (
+                                          <div className="grid gap-4">
+                                            <div className="space-y-2">
+                                              <h4 className="font-medium leading-none">Suggestion</h4>
+                                              <p className="text-sm text-muted-foreground">
+                                                Here's a suggestion from the AI.
+                                              </p>
+                                            </div>
+                                            <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                                            <Button onClick={handleInsertSuggestion} size="sm">
+                                              <CornerDownLeft className="mr-2 h-4 w-4" /> Insert
+                                            </Button>
+                                          </div>
+                                      ) : (
+                                          <p className="text-sm text-muted-foreground">Click the button to get a suggestion.</p>
+                                      )}
+                                  </PopoverContent>
+                                </Popover>
                             )}
-                        </PopoverContent>
-                      </Popover>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
+                        <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  {isWebPreviewable && isPreviewVisible && (
+                      <Card className="flex flex-col h-[60vh] md:h-full">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                          <CardTitle>Preview</CardTitle>
+                          <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(false)}>
+                              <ChevronDown className="h-4 w-4" />
+                          </Button>
+                      </CardHeader>
+                      <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
+                          <iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" />
+                      </CardContent>
+                      </Card>
                   )}
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
-              <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
-            </div>
-          </div>
-        </Card>
-        
-        {isWebPreviewable && isPreviewVisible && (
-            <Card className="flex flex-col h-[60vh] md:h-full">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Preview</CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(false)}>
-                    <ChevronDown className="h-4 w-4" />
-                </Button>
-            </CardHeader>
-            <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
-                <iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" />
-            </CardContent>
-            </Card>
-        )}
-
-        {isWebPreviewable && !isPreviewVisible && (
-            <div className="absolute top-0 right-4">
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}>
-                                <ChevronUp className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Show Preview</p>
-                        </TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
-            </div>
-        )}
-      </div>
-    );
+          
+                  {isWebPreviewable && !isPreviewVisible && (
+                      <div className="absolute top-0 right-4">
+                           <TooltipProvider>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}>
+                                          <ChevronUp className="h-4 w-4" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                      <p>Show Preview</p>
+                                  </TooltipContent>
+                              </Tooltip>
+                           </TooltipProvider>
+                      </div>
+                  )}
+                </div>
+              );
+    }
   };
 
   return (

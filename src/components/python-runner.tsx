@@ -13,20 +13,18 @@ import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
-const defaultCode = `def greet(name):
-    print(f"Hello, {name}!")
-
-greet("Python World")
-`;
-
 interface RunResult {
     errorOutput?: string;
     success: boolean;
     executionOutput?: string;
 }
 
-export default function PythonRunner() {
-  const [code, setCode] = useState(defaultCode);
+interface PythonRunnerProps {
+    code: string;
+    setCode: (code: string) => void;
+}
+
+export default function PythonRunner({ code, setCode }: PythonRunnerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
@@ -87,7 +85,7 @@ export default function PythonRunner() {
   };
 
   const handleInsertSuggestion = () => {
-    setCode(prev => prev + suggestion);
+    setCode(code + suggestion);
     setSuggestion('');
   };
 

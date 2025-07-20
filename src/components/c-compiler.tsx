@@ -13,21 +13,18 @@ import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
-const defaultCode = `#include <stdio.h>
-
-int main() {
-    printf("Hello, C World!\\n");
-    return 0;
-}`;
-
 interface CompilationResult {
     compilationOutput: string;
     success: boolean;
     executionOutput?: string;
 }
 
-export default function CCompiler() {
-  const [code, setCode] = useState(defaultCode);
+interface CCompilerProps {
+    code: string;
+    setCode: (code: string) => void;
+}
+
+export default function CCompiler({ code, setCode }: CCompilerProps) {
   const [isCompiling, setIsCompiling] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
@@ -88,7 +85,7 @@ export default function CCompiler() {
   };
 
   const handleInsertSuggestion = () => {
-    setCode(prev => prev + suggestion);
+    setCode(code + suggestion);
     setSuggestion('');
   };
 

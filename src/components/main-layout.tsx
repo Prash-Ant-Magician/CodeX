@@ -210,7 +210,7 @@ export function MainLayout() {
         </Sidebar>
         <SidebarInset>
           <MainHeaderContent />
-          <div className="p-4 md:p-6">{renderContent()}</div>
+          <main className="p-4 md:p-6">{renderContent()}</main>
         </SidebarInset>
         <Toaster />
       </SidebarProvider>
