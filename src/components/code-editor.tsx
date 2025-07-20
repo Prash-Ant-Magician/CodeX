@@ -451,34 +451,39 @@ export default function CodeEditor() {
                     <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
                 </Button>
                  {isAiSuggestionsEnabled && (
-                    <Popover onOpenChange={(open) => !open && setSuggestion('')}>
-                      <PopoverTrigger asChild>
-                         <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting}>
-                              {isSuggesting ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : (
-                                  <Lightbulb className="mr-2 h-4 w-4" />
-                              )}
-                              Get Suggestion
-                          </Button>
-                      </PopoverTrigger>
-                      {suggestion && !isSuggesting && (
-                        <PopoverContent className="w-80">
-                          <div className="grid gap-4">
-                            <div className="space-y-2">
-                              <h4 className="font-medium leading-none">Suggestion</h4>
-                              <p className="text-sm text-muted-foreground">
-                                Here's a suggestion from the AI.
-                              </p>
-                            </div>
-                            <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                            <Button onClick={handleInsertSuggestion} size="sm">
-                              <CornerDownLeft className="mr-2 h-4 w-4" /> Insert
+                    <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
+                        <PopoverTrigger asChild>
+                           <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting}>
+                                {isSuggesting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Lightbulb className="mr-2 h-4 w-4" />
+                                )}
                             </Button>
-                          </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                           {isSuggesting ? (
+                                <div className="flex items-center justify-center">
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
+                                </div>
+                            ) : suggestion ? (
+                                <div className="grid gap-4">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Suggestion</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Here's a suggestion from the AI.
+                                    </p>
+                                  </div>
+                                  <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                                  <Button onClick={handleInsertSuggestion} size="sm">
+                                    <CornerDownLeft className="mr-2 h-4 w-4" /> Insert
+                                  </Button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Click the button to get a suggestion.</p>
+                            )}
                         </PopoverContent>
-                      )}
-                    </Popover>
+                      </Popover>
                   )}
             </div>
             
