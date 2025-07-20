@@ -8,3 +8,4 @@ import '@/ai/flows/compile-code.ts';
 import '@/ai/flows/generate-code-from-prompt.ts';
 import '@/ai/flows/run-python.ts';
 import '@/ai/flows/run-java.ts';
+import '@/ai/flows/suggest-code.ts';

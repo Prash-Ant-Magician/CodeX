@@ -13,7 +13,8 @@ import { saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnip
 import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, HelpCircle, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { suggestCode } from '@/ai/flows/suggest-code';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Download, Upload, MoreHorizontal, HelpCircle, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -23,6 +24,8 @@ import CCompiler from './c-compiler';
 import PythonRunner from './python-runner';
 import JavaRunner from './java-runner';
 import { cn } from '@/lib/utils';
+import { useSettings } from './settings';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const defaultCodes = {
   frontend: {
@@ -117,9 +120,12 @@ export default function CodeEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestion, setSuggestion] = useState('');
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { isAiSuggestionsEnabled } = useSettings();
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
@@ -341,6 +347,38 @@ export default function CodeEditor() {
     }
 };
 
+  const handleSuggestCode = async () => {
+    setIsSuggesting(true);
+    setSuggestion('');
+    try {
+      let codeToSuggest = '';
+      let langToSuggest = selectedLanguage;
+      if (selectedLanguage === 'frontend') {
+        codeToSuggest = codes.frontend[activeTab];
+        langToSuggest = activeTab;
+      } else {
+        codeToSuggest = codes[selectedLanguage as Exclude<Language, 'frontend'>];
+      }
+      const result = await suggestCode({ code: codeToSuggest, language: langToSuggest });
+      setSuggestion(result.suggestion);
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to get suggestion.' });
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleInsertSuggestion = () => {
+    if (selectedLanguage === 'frontend') {
+      handleCodeChange(activeTab, codes.frontend[activeTab] + suggestion);
+    } else {
+      handleSingleFileChange(codes[selectedLanguage as Exclude<Language, 'frontend'>] + suggestion);
+    }
+    setSuggestion('');
+  };
+
+
   const handleDownload = () => {
     toast({ variant: 'destructive', title: 'Not Implemented', description: 'Download is not yet supported.' });
   };
@@ -412,6 +450,36 @@ export default function CodeEditor() {
                  <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
                     <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
                 </Button>
+                 {isAiSuggestionsEnabled && (
+                    <Popover onOpenChange={(open) => !open && setSuggestion('')}>
+                      <PopoverTrigger asChild>
+                         <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting}>
+                              {isSuggesting ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                  <Lightbulb className="mr-2 h-4 w-4" />
+                              )}
+                              Get Suggestion
+                          </Button>
+                      </PopoverTrigger>
+                      {suggestion && !isSuggesting && (
+                        <PopoverContent className="w-80">
+                          <div className="grid gap-4">
+                            <div className="space-y-2">
+                              <h4 className="font-medium leading-none">Suggestion</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Here's a suggestion from the AI.
+                              </p>
+                            </div>
+                            <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                            <Button onClick={handleInsertSuggestion} size="sm">
+                              <CornerDownLeft className="mr-2 h-4 w-4" /> Insert
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      )}
+                    </Popover>
+                  )}
             </div>
             
             <div className="flex flex-wrap gap-2">

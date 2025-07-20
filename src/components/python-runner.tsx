@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { runPythonCode } from '@/ai/flows/run-python';
-import { Play, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { suggestCode } from '@/ai/flows/suggest-code';
+import { Play, Loader2, AlertTriangle, CheckCircle, Lightbulb, CornerDownLeft } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
+import { useSettings } from './settings';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const defaultCode = `def greet(name):
     print(f"Hello, {name}!")
@@ -25,8 +28,11 @@ interface RunResult {
 export default function PythonRunner() {
   const [code, setCode] = useState(defaultCode);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestion, setSuggestion] = useState('');
   const [result, setResult] = useState<RunResult | null>(null);
   const { toast } = useToast();
+  const { isAiSuggestionsEnabled } = useSettings();
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const target = e.target as HTMLTextAreaElement;
@@ -66,6 +72,25 @@ export default function PythonRunner() {
     }
   };
 
+  const handleSuggestCode = async () => {
+    setIsSuggesting(true);
+    setSuggestion('');
+    try {
+      const result = await suggestCode({ code, language: 'python' });
+      setSuggestion(result.suggestion);
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to get suggestion.' });
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleInsertSuggestion = () => {
+    setCode(prev => prev + suggestion);
+    setSuggestion('');
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:h-[calc(100vh-10rem)]">
         <Card className="flex flex-col h-[60vh] md:h-full">
@@ -82,18 +107,50 @@ export default function PythonRunner() {
                     placeholder="Write your Python code here..."
                 />
             </CardContent>
-            <CardFooter>
-                 <Button onClick={handleRun} disabled={isRunning} className="bg-primary hover:bg-primary/90">
-                    {isRunning ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Running...
-                        </>
-                    ) : (
-                        <>
-                            <Play className="mr-2 h-4 w-4" /> Run
-                        </>
+            <CardFooter className="flex justify-between">
+                 <div className="flex gap-2">
+                    <Button onClick={handleRun} disabled={isRunning} className="bg-primary hover:bg-primary/90">
+                        {isRunning ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Running...
+                            </>
+                        ) : (
+                            <>
+                                <Play className="mr-2 h-4 w-4" /> Run
+                            </>
+                        )}
+                    </Button>
+                     {isAiSuggestionsEnabled && (
+                      <Popover onOpenChange={(open) => !open && setSuggestion('')}>
+                        <PopoverTrigger asChild>
+                           <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting}>
+                                {isSuggesting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Lightbulb className="mr-2 h-4 w-4" />
+                                )}
+                                Get Suggestion
+                            </Button>
+                        </PopoverTrigger>
+                        {suggestion && !isSuggesting && (
+                          <PopoverContent className="w-80">
+                            <div className="grid gap-4">
+                              <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Suggestion</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Here's a suggestion from the AI.
+                                </p>
+                              </div>
+                              <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                              <Button onClick={handleInsertSuggestion} size="sm">
+                                <CornerDownLeft className="mr-2 h-4 w-4" /> Insert
+                              </Button>
+                            </div>
+                          </PopoverContent>
+                        )}
+                      </Popover>
                     )}
-                </Button>
+                 </div>
             </CardFooter>
         </Card>
         <Card className="flex flex-col h-[60vh] md:h-full">
