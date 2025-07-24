@@ -31,7 +31,7 @@ const prompt = ai.definePrompt({
   output: {schema: SuggestCodeOutputSchema},
   prompt: `You are an expert programmer in {{language}}.
 Analyze the following code and suggest the very next logical line or block of code.
-Your suggestion should be concise and directly follow the existing code's logic.
+Your suggestion should be concise and directly follow the existing code's logic. It should be a completion of the thought, not just the next token.
 Only provide the raw code for the suggestion, with no explanations or markdown.
 
 Existing Code:

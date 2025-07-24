@@ -442,23 +442,23 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                            {isAiSuggestionsEnabled && (
                               <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
                                   <PopoverTrigger asChild>
-                                     <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting}>
+                                     <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
                                           {isSuggesting ? (
                                               <Loader2 className="h-4 w-4 animate-spin" />
                                           ) : (
-                                              <Lightbulb className="mr-2 h-4 w-4" />
+                                              <Lightbulb className="h-4 w-4" />
                                           )}
                                       </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80">
                                      {isSuggesting ? (
-                                          <div className="flex items-center justify-center">
-                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
+                                          <div className="flex items-center justify-center p-4">
+                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading suggestion...
                                           </div>
                                       ) : suggestion ? (
                                           <div className="grid gap-4">
                                             <div className="space-y-2">
-                                              <h4 className="font-medium leading-none">Suggestion</h4>
+                                              <h4 className="font-medium leading-none">AI Suggestion</h4>
                                               <p className="text-sm text-muted-foreground">
                                                 Here's a suggestion from the AI.
                                               </p>
@@ -469,7 +469,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                                             </Button>
                                           </div>
                                       ) : (
-                                          <p className="text-sm text-muted-foreground">Click the button to get a suggestion.</p>
+                                          <p className="p-4 text-sm text-center text-muted-foreground">Click the button to generate a suggestion.</p>
                                       )}
                                   </PopoverContent>
                                 </Popover>
