@@ -42,6 +42,31 @@ interface CodeEditorProps {
     onShare: (code: string, language: string) => void;
 }
 
+const MemoizedEditor = React.memo(
+  function MemoizedEditor({ language, value, onChange, options, isSyntaxHighlightingEnabled, theme }: {
+    language: string;
+    value: string;
+    onChange: (value: string | undefined) => void;
+    options: any;
+    isSyntaxHighlightingEnabled: boolean;
+    theme: string;
+  }) {
+    return (
+      <div className="flex-1 w-full h-full bg-muted/50 rounded-md overflow-hidden">
+        <Editor
+          height="100%"
+          language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
+          value={value}
+          theme={theme}
+          onChange={onChange}
+          options={options}
+          loading={<Loader2 className="h-8 w-8 animate-spin" />}
+        />
+      </div>
+    );
+  }
+);
+
 
 export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps) {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('frontend');
@@ -71,9 +96,10 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const { user } = useAuth();
   const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
 
-  const handleCodeForLanguage = (lang: Language, newCode: string) => {
+  const handleCodeForLanguage = useCallback((lang: Language, newCode: string) => {
     setCodes(prev => ({...prev, [lang]: newCode}));
-  }
+  }, [setCodes]);
+
 
   const loadHistory = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -171,7 +197,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     if (selectedLanguage !== 'frontend') {
       handleCodeForLanguage(selectedLanguage, value);
     }
-  }, [selectedLanguage, setCodes]);
+  }, [selectedLanguage, handleCodeForLanguage]);
   
   const handleRunBackend = async (lang: BackendLanguage) => {
     setIsBackendRunning(true);
@@ -393,30 +419,15 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     setSuggestion('');
   };
   
-  const editorOptions = {
+  const editorOptions = useMemo(() => ({
       fontSize: editorFontSize === 'small' ? 12 : editorFontSize === 'medium' ? 14 : 16,
       tabSize: tabSize,
       autoClosingBrackets: autoBrackets ? 'always' : 'never',
       minimap: { enabled: false },
       wordWrap: 'on',
       fontFamily: 'Source Code Pro, monospace',
-  };
+  }), [editorFontSize, tabSize, autoBrackets]);
 
-  const renderMonacoEditor = useCallback((language: string, value: string, onChange: (value: string | undefined) => void) => {
-    return (
-        <div className="flex-1 w-full h-full bg-muted/50 rounded-md overflow-hidden">
-            <Editor
-                height="100%"
-                language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
-                value={value}
-                theme={editorTheme}
-                onChange={onChange}
-                options={editorOptions}
-                loading={<Loader2 className="h-8 w-8 animate-spin" />}
-            />
-        </div>
-    );
-  }, [isSyntaxHighlightingEnabled, editorTheme, editorOptions]);
   
   const CommonEditorCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
     <Card className={cn("flex flex-col", className)}>
@@ -483,7 +494,14 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                         <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col gap-4">
-                        {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as BackendLanguage], handleSingleFileChange)}
+                        <MemoizedEditor
+                            language={selectedLanguage}
+                            value={codes[selectedLanguage as BackendLanguage]}
+                            onChange={handleSingleFileChange}
+                            options={editorOptions}
+                            isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                            theme={editorTheme}
+                        />
                     </CardContent>
                 </CommonEditorCard>
 
@@ -523,9 +541,36 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                   <TabsList><TabsTrigger value="html">index.html</TabsTrigger><TabsTrigger value="css">style.css</TabsTrigger><TabsTrigger value="javascript">script.js</TabsTrigger></TabsList>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-4">
-                  <TabsContent value="html" className="flex-1 m-0">{renderMonacoEditor('html', codes.frontend.html, (val) => handleCodeChange('html', val))}</TabsContent>
-                  <TabsContent value="css" className="flex-1 m-0">{renderMonacoEditor('css', codes.frontend.css, (val) => handleCodeChange('css', val))}</TabsContent>
-                  <TabsContent value="javascript" className="flex-1 m-0">{renderMonacoEditor('javascript', codes.frontend.javascript, (val) => handleCodeChange('javascript', val))}</TabsContent>
+                  <TabsContent value="html" className="flex-1 m-0">
+                    <MemoizedEditor
+                        language="html"
+                        value={codes.frontend.html}
+                        onChange={(val) => handleCodeChange('html', val)}
+                        options={editorOptions}
+                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                        theme={editorTheme}
+                    />
+                  </TabsContent>
+                  <TabsContent value="css" className="flex-1 m-0">
+                    <MemoizedEditor
+                        language="css"
+                        value={codes.frontend.css}
+                        onChange={(val) => handleCodeChange('css', val)}
+                        options={editorOptions}
+                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                        theme={editorTheme}
+                    />
+                  </TabsContent>
+                  <TabsContent value="javascript" className="flex-1 m-0">
+                    <MemoizedEditor
+                        language="javascript"
+                        value={codes.frontend.javascript}
+                        onChange={(val) => handleCodeChange('javascript', val)}
+                        options={editorOptions}
+                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                        theme={editorTheme}
+                    />
+                  </TabsContent>
                 </CardContent>
               </Tabs>
             ) : (
@@ -537,7 +582,14 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                     </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-4">
-                  {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>], handleSingleFileChange)}
+                  <MemoizedEditor
+                    language={selectedLanguage}
+                    value={codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>]}
+                    onChange={handleSingleFileChange}
+                    options={editorOptions}
+                    isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                    theme={editorTheme}
+                  />
                 </CardContent>
               </>
             )}
@@ -555,7 +607,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
       isBackendLang, 
       selectedLanguage, 
       codes, 
-      renderMonacoEditor, 
       handleSingleFileChange, 
       handleCodeChange, 
       isWebPreviewable, 
@@ -566,7 +617,10 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
       backendError, 
       backendOutput, 
       history, 
-      handleRestoreFromHistory
+      handleRestoreFromHistory,
+      editorOptions,
+      isSyntaxHighlightingEnabled,
+      editorTheme
   ]);
 
   return (
