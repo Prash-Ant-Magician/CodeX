@@ -194,29 +194,19 @@ function UserNav() {
 }
 
 function SidebarHeaderContent() {
-    const { toggleSidebar } = useSidebar();
     return (
         <SidebarHeader>
-            <Logo onClick={toggleSidebar} />
+            <Logo />
         </SidebarHeader>
     );
 }
 
 function MainHeaderContent() {
-  const { state } = useSidebar();
+  const { isMobile, state } = useSidebar();
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-        {state === 'collapsed' ? (
-           <div className="flex items-center gap-2">
-            <SidebarTrigger className="sm:hidden" />
-            <div className="hidden sm:flex">
-               <Logo />
-            </div>
-           </div>
-        ) : (
-          <SidebarTrigger className="sm:hidden" />
-        )}
+         {isMobile || state === 'collapsed' ? <Logo /> : <SidebarTrigger className="sm:hidden" />}
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-4">
@@ -300,7 +290,7 @@ export function MainLayout() {
   return (
     <SettingsProvider>
       <SidebarProvider>
-        <Sidebar>
+        <Sidebar collapsible="icon">
           <SidebarHeaderContent />
           <SidebarContent>
             <SidebarMenu>
@@ -424,5 +414,3 @@ export function MainLayout() {
     </SettingsProvider>
   );
 }
-
-    
