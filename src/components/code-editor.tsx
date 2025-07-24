@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -158,20 +158,20 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     return cleanup;
   }, [codes, selectedLanguage, updatePreview]);
 
-  const handleCodeChange = (language: FileType, value: string | undefined) => {
+  const handleCodeChange = useCallback((language: FileType, value: string | undefined) => {
     if (value === undefined) return;
     setCodes(prev => ({
       ...prev,
       frontend: { ...prev.frontend, [language]: value }
     }));
-  };
+  }, [setCodes]);
 
-  const handleSingleFileChange = (value: string | undefined) => {
+  const handleSingleFileChange = useCallback((value: string | undefined) => {
     if (value === undefined) return;
     if (selectedLanguage !== 'frontend') {
       handleCodeForLanguage(selectedLanguage, value);
     }
-  };
+  }, [selectedLanguage, setCodes]);
   
   const handleRunBackend = async (lang: BackendLanguage) => {
     setIsBackendRunning(true);
@@ -402,7 +402,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
       fontFamily: 'Source Code Pro, monospace',
   };
 
-  const renderMonacoEditor = (language: string, value: string, onChange: (value: string | undefined) => void) => {
+  const renderMonacoEditor = useCallback((language: string, value: string, onChange: (value: string | undefined) => void) => {
     return (
         <div className="flex-1 w-full h-full bg-muted/50 rounded-md overflow-hidden">
             <Editor
@@ -416,7 +416,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
             />
         </div>
     );
-  }
+  }, [isSyntaxHighlightingEnabled, editorTheme, editorOptions]);
   
   const CommonEditorCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
     <Card className={cn("flex flex-col", className)}>
@@ -473,7 +473,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
   const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
 
-  const renderEditor = () => {
+  const editorContent = useMemo(() => {
     if (isBackendLang) {
         return (
             <div className="flex flex-col gap-4 h-[calc(100vh-10rem)]">
@@ -551,7 +551,23 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
           )}
         </div>
       );
-  };
+  }, [
+      isBackendLang, 
+      selectedLanguage, 
+      codes, 
+      renderMonacoEditor, 
+      handleSingleFileChange, 
+      handleCodeChange, 
+      isWebPreviewable, 
+      isPreviewVisible, 
+      previewDoc, 
+      activeTab, 
+      isBackendRunning, 
+      backendError, 
+      backendOutput, 
+      history, 
+      handleRestoreFromHistory
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -592,7 +608,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
             </div>
         </div>
 
-        {renderEditor()}
+        {editorContent}
 
         {/* Dialogs and Alerts */}
         <Dialog open={isSaveOpen} onOpenChange={setIsSaveOpen}>
@@ -653,5 +669,3 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     </div>
   );
 }
-
-    
