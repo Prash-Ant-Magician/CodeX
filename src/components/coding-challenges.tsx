@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2, Loader2, XCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/auth';
 import { getCompletedChallenges, markChallengeAsCompleted, getLocalCompletedChallenges, markLocalChallengeAsCompleted } from '@/lib/challenge-progress';
+import { useSettings } from './settings';
 
 const playSuccessSound = () => {
   if (typeof window !== 'undefined' && window.AudioContext) {
@@ -496,8 +497,28 @@ type TestResult = {
   message: string;
 } | null;
 
+const playKeystrokeSound = () => {
+    if (typeof window !== 'undefined' && window.AudioContext) {
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+        
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.1);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+    }
+};
+
 export default function CodingChallenges() {
   const { user } = useAuth();
+  const { isTypingSoundEnabled } = useSettings();
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('c');
   
   const defaultCategory = Object.keys(challenges[selectedLanguage])[0];
@@ -586,6 +607,13 @@ export default function CodingChallenges() {
   const handleChallengeChange = (id: string) => {
     setActiveChallengeId(id);
   };
+  
+  const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (isTypingSoundEnabled) {
+      playKeystrokeSound();
+    }
+    setCode(e.target.value);
+  }
 
   const handleRunTests = () => {
     if (!activeChallenge) return;
@@ -734,7 +762,7 @@ export default function CodingChallenges() {
         <CardContent>
           <Textarea
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={handleCodeChange}
             className="font-code h-64 bg-muted/50"
             placeholder="Enter your solution here..."
           />
@@ -766,3 +794,5 @@ export default function CodingChallenges() {
     </div>
   );
 }
+
+    

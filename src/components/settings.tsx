@@ -19,6 +19,8 @@ interface SettingsContextType {
   setTabSize: React.Dispatch<React.SetStateAction<number>>;
   autoBrackets: boolean;
   setAutoBrackets: React.Dispatch<React.SetStateAction<boolean>>;
+  isTypingSoundEnabled: boolean;
+  setIsTypingSoundEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [editorFontSize, setEditorFontSize] = useState<EditorFontSize>('medium');
   const [tabSize, setTabSize] = useState(2);
   const [autoBrackets, setAutoBrackets] = useState(true);
+  const [isTypingSoundEnabled, setIsTypingSoundEnabled] = useState(false);
 
   return (
     <SettingsContext.Provider 
@@ -35,7 +38,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         isAiSuggestionsEnabled, setIsAiSuggestionsEnabled,
         editorFontSize, setEditorFontSize,
         tabSize, setTabSize,
-        autoBrackets, setAutoBrackets
+        autoBrackets, setAutoBrackets,
+        isTypingSoundEnabled, setIsTypingSoundEnabled
       }}
     >
       {children}
@@ -57,7 +61,8 @@ export default function SettingsPage() {
     isAiSuggestionsEnabled, setIsAiSuggestionsEnabled,
     editorFontSize, setEditorFontSize,
     tabSize, setTabSize,
-    autoBrackets, setAutoBrackets
+    autoBrackets, setAutoBrackets,
+    isTypingSoundEnabled, setIsTypingSoundEnabled
   } = useSettings();
 
   return (
@@ -121,6 +126,21 @@ export default function SettingsPage() {
                 checked={isAiSuggestionsEnabled}
                 onCheckedChange={setIsAiSuggestionsEnabled}
                 aria-label="Toggle AI code suggestions"
+              />
+            </div>
+            
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="typing-sounds" className="text-base">Keystroke Sounds</Label>
+                <p className="text-sm text-muted-foreground">
+                    Play a sound on each keystroke for a retro vibe.
+                </p>
+              </div>
+               <Switch
+                id="typing-sounds"
+                checked={isTypingSoundEnabled}
+                onCheckedChange={setIsTypingSoundEnabled}
+                aria-label="Toggle keystroke sounds"
               />
             </div>
 
@@ -193,3 +213,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
