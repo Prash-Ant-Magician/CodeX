@@ -12,3 +12,4 @@ import '@/ai/flows/suggest-code.ts';
 import '@/ai/flows/run-ruby.ts';
 import '@/ai/flows/run-r.ts';
 import '@/ai/flows/run-typescript.ts';
+import '@/ai/flows/stress-test-code.ts';

@@ -7,10 +7,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, Loader2, XCircle, CheckCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, CheckCircle, Flame } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/auth';
 import { getCompletedChallenges, markChallengeAsCompleted, getLocalCompletedChallenges, markLocalChallengeAsCompleted } from '@/lib/challenge-progress';
 import { useSettings } from './settings';
+import { stressTestCode, StressTestCodeOutput } from '@/ai/flows/stress-test-code';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 const playSuccessSound = () => {
   if (typeof window !== 'undefined' && window.AudioContext) {
@@ -536,7 +540,11 @@ export default function CodingChallenges() {
   const [code, setCode] = useState(activeChallenge ? activeChallenge.template : '');
   const [testResult, setTestResult] = useState<TestResult>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isStressTesting, setIsStressTesting] = useState(false);
+  const [stressTestResult, setStressTestResult] = useState<StressTestCodeOutput | null>(null);
+  const [isStressTestDialogOpen, setIsStressTestDialogOpen] = useState(false);
   const [emojiBlast, setEmojiBlast] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchProgress = useCallback(async () => {
     if (user) {
@@ -653,6 +661,22 @@ export default function CodingChallenges() {
     }, 1000);
   };
   
+  const handleStressTest = async () => {
+    if (!activeChallenge) return;
+    setIsStressTesting(true);
+    setStressTestResult(null);
+    try {
+        const result = await stressTestCode({ code, language: selectedLanguage });
+        setStressTestResult(result);
+        setIsStressTestDialogOpen(true);
+    } catch (error) {
+        console.error("Error running stress test:", error);
+        toast({ variant: 'destructive', title: "Error", description: "Failed to run stress test analysis."});
+    } finally {
+        setIsStressTesting(false);
+    }
+  };
+
   const currentCategories = Object.keys(challenges[selectedLanguage]);
   const currentChallenges = challenges[selectedLanguage]?.[selectedCategory] || [];
 
@@ -768,16 +792,25 @@ export default function CodingChallenges() {
           />
         </CardContent>
         <CardFooter className="flex-col items-start gap-4">
-          <Button onClick={handleRunTests} disabled={isRunning} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            {isRunning ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Running Tests...
-              </>
-            ) : (
-              'Run Tests'
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleRunTests} disabled={isRunning} className="bg-primary hover:bg-primary/90">
+              {isRunning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Running Tests...
+                </>
+              ) : (
+                'Run Tests'
+              )}
+            </Button>
+            <Button onClick={handleStressTest} disabled={isStressTesting} variant="outline">
+              {isStressTesting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...</>
+              ) : (
+                <><Flame className="mr-2 h-4 w-4" /> Stress Test </>
+              )}
+            </Button>
+          </div>
           {testResult && (
             <Alert variant={testResult.status === 'success' ? 'default' : 'destructive'} className={testResult.status === 'success' ? 'border-green-500/50 text-green-500' : ''}>
               {testResult.status === 'success' ? (
@@ -791,8 +824,51 @@ export default function CodingChallenges() {
           )}
         </CardFooter>
       </Card>
+      
+      {/* Stress Test Result Dialog */}
+      <Dialog open={isStressTestDialogOpen} onOpenChange={setIsStressTestDialogOpen}>
+          <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                  <DialogTitle>Code Stress Test Analysis</DialogTitle>
+                  <DialogDescription>AI-powered analysis of your code's performance and robustness.</DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="h-[60vh] -mx-6">
+                <div className="px-6 space-y-4">
+                  {stressTestResult ? (
+                      <>
+                          <div className="space-y-2">
+                              <h3 className="font-semibold">Estimated Complexity</h3>
+                              <p className="text-sm font-mono p-2 bg-muted rounded-md">{stressTestResult.estimatedComplexity}</p>
+                          </div>
+                          <div className="space-y-2">
+                              <h3 className="font-semibold">Performance Analysis</h3>
+                              <p className="text-sm text-muted-foreground">{stressTestResult.performanceAnalysis}</p>
+                          </div>
+                           <div className="space-y-2">
+                              <h3 className="font-semibold">Concurrency Issues</h3>
+                              <p className="text-sm text-muted-foreground">{stressTestResult.concurrencyIssues}</p>
+                          </div>
+                          <div className="space-y-2">
+                              <h3 className="font-semibold">Suggested Test Cases</h3>
+                              <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                                  {stressTestResult.suggestedTestCases.map((testCase, i) => (
+                                      <li key={i}><code className="font-mono bg-muted p-1 rounded-sm">{testCase}</code></li>
+                                  ))}
+                              </ul>
+                          </div>
+                      </>
+                  ) : (
+                      <div className="flex items-center justify-center h-full">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                  )}
+                 </div>
+              </ScrollArea>
+              <DialogFooter>
+                  <Button onClick={() => setIsStressTestDialogOpen(false)}>Close</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-    
