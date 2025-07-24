@@ -23,6 +23,25 @@ const commentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty."),
 });
 
+const generateTagColor = (tag: string) => {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+        hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const h = hash % 360;
+    return `hsl(${h}, 70%, 80%)`;
+};
+
+const generateTagTextColor = (tag: string) => {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+        hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const h = hash % 360;
+    return `hsl(${h}, 70%, 15%)`;
+};
+
+
 export default function PostPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -154,7 +173,11 @@ export default function PostPage() {
         </CardContent>
         <CardFooter>
             <div className="flex gap-2">
-                {post.tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                {post.tags.map(tag => (
+                  <Badge key={tag} style={{ backgroundColor: generateTagColor(tag), color: generateTagTextColor(tag) }}>
+                    {tag}
+                  </Badge>
+                ))}
             </div>
         </CardFooter>
       </Card>
