@@ -201,14 +201,11 @@ function SidebarHeaderContent() {
 }
 
 function MainHeaderContent() {
-  const { isMobile, open, state } = useSidebar();
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-         {(isMobile || state === 'collapsed' || !open) && <Logo />}
-         {isMobile && state === 'collapsed' && <h1 className="text-xl font-bold text-foreground font-headline">CodeLeap</h1>}
+         <Logo />
       </div>
-
       <div className="flex flex-1 items-center justify-end gap-4">
           <UserNav />
       </div>
