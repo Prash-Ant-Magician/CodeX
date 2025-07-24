@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users, PlusCircle, Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
@@ -36,6 +36,8 @@ import * as z from 'zod';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { Snippet, saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnippets, deleteLocalSnippet, SnippetData } from '@/lib/snippets';
+
 
 const postSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
@@ -45,6 +47,9 @@ const postSchema = z.object({
 
 
 type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings' | 'qa' | 'forum';
+type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
+type FileType = 'html' | 'css' | 'javascript';
+
 
 const navItems: { view: ActiveView; label: string; icon: React.ReactNode }[] = [
     { view: 'editor', label: 'Code Editor', icon: <Code className="h-5 w-5" /> },
@@ -262,10 +267,13 @@ export function MainLayout() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [prefilledPostContent, setPrefilledPostContent] = useState("");
   const [forumRefreshKey, setForumRefreshKey] = useState(0);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('frontend');
+  const [snippets, setSnippets] = useState<Snippet[]>([]);
 
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const form = useForm<z.infer<typeof postSchema>>({
     resolver: zodResolver(postSchema),
     defaultValues: { title: "", content: "", tags: "" },
@@ -305,11 +313,104 @@ export function MainLayout() {
     }
   };
 
+  const handleCodeForLanguage = useCallback((lang: Language, newCode: string) => {
+    setCodes(prev => ({...prev, [lang]: newCode}));
+  }, []);
+
+  const handleFrontendCodeChange = useCallback((file: FileType, newCode: string) => {
+    setCodes(prev => ({
+      ...prev,
+      frontend: { ...prev.frontend, [file]: newCode }
+    }));
+  }, []);
+  
+  const fetchSnippets = useCallback(async () => {
+    try {
+      if (user) {
+        const firestoreSnippets = await getSnippets(user.uid);
+        setSnippets(firestoreSnippets);
+      } else {
+        setSnippets(getLocalSnippets());
+      }
+    } catch (error) {
+      console.error("Failed to fetch snippets:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load your snippets.' });
+    }
+  }, [user, toast]);
+  
+  const handleSaveSnippet = async (name: string, lang: Language) => {
+      let codeToSave;
+      if (lang === 'frontend') {
+        codeToSave = JSON.stringify(codes.frontend);
+      } else {
+        codeToSave = codes[lang as keyof AllCodes] as string;
+      }
+      const snippetData: SnippetData = { name, language: lang, code: codeToSave };
+      try {
+        if (user) {
+          await saveSnippet(user.uid, snippetData);
+        } else {
+          saveLocalSnippet(snippetData);
+        }
+        toast({ title: 'Success', description: 'Snippet saved successfully.' });
+        await fetchSnippets(); // Refresh list
+      } catch (error) {
+         toast({ variant: 'destructive', title: 'Error', description: 'Could not save snippet.' });
+      }
+  };
+
+  const handleLoadSnippet = (snippet: Snippet) => {
+    try {
+      const lang = snippet.language as Language;
+      setSelectedLanguage(lang);
+      if (lang === 'frontend') {
+        const loadedCodes = JSON.parse(snippet.code);
+        if (loadedCodes.html !== undefined && loadedCodes.css !== undefined && loadedCodes.javascript !== undefined) {
+          setCodes(prev => ({ ...prev, frontend: loadedCodes }));
+        } else {
+          throw new Error("Invalid project format.");
+        }
+      } else {
+        setCodes(prev => ({ ...prev, [lang]: snippet.code }));
+      }
+      toast({ title: 'Snippet Loaded', description: `"${snippet.name}" has been loaded into the editor.` });
+    } catch (e) {
+        console.error("Failed to parse snippet:", e);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load snippet. The data might be corrupted.' });
+    }
+  };
+  
+  const handleDeleteSnippet = async (id: string) => {
+    try {
+        if (user) {
+            await deleteSnippet(user.uid, id);
+        } else {
+            deleteLocalSnippet(id);
+        }
+        toast({ title: 'Snippet Deleted', description: 'The snippet has been removed.' });
+        await fetchSnippets(); // Refresh list
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not delete snippet.' });
+    }
+  }
+
 
   const renderContent = () => {
     switch (activeView) {
       case 'editor':
-        return <CodeEditor codes={codes} setCodes={setCodes} onShare={handleOpenCreatePostDialog} />;
+        return <CodeEditor
+            codes={codes}
+            selectedLanguage={selectedLanguage}
+            setSelectedLanguage={setSelectedLanguage}
+            onFrontendCodeChange={handleFrontendCodeChange}
+            onCodeChange={handleCodeForLanguage}
+            onShare={handleOpenCreatePostDialog}
+            snippets={snippets}
+            fetchSnippets={fetchSnippets}
+            onSaveSnippet={handleSaveSnippet}
+            onLoadSnippet={handleLoadSnippet}
+            onDeleteSnippet={handleDeleteSnippet}
+          />;
       case 'learn':
         return <LearningModules />;
       case 'challenges':
@@ -323,7 +424,19 @@ export function MainLayout() {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <CodeEditor codes={codes} setCodes={setCodes} onShare={handleOpenCreatePostDialog} />;
+        return <CodeEditor
+            codes={codes}
+            selectedLanguage={selectedLanguage}
+            setSelectedLanguage={setSelectedLanguage}
+            onFrontendCodeChange={handleFrontendCodeChange}
+            onCodeChange={handleCodeForLanguage}
+            onShare={handleOpenCreatePostDialog}
+            snippets={snippets}
+            fetchSnippets={fetchSnippets}
+            onSaveSnippet={handleSaveSnippet}
+            onLoadSnippet={handleLoadSnippet}
+            onDeleteSnippet={handleDeleteSnippet}
+          />;
     }
   };
 
@@ -365,3 +478,4 @@ export function MainLayout() {
     </SettingsProvider>
   );
 }
+

@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnippets, deleteLocalSnippet, Snippet, SnippetData } from '@/lib/snippets';
 import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
@@ -30,6 +29,7 @@ import { compileCode } from '@/ai/flows/compile-code';
 import { runRCode } from '@/ai/flows/run-r';
 import { runRubyCode } from '@/ai/flows/run-ruby';
 import RunHistory, { type HistoryEntry } from './run-history';
+import { Snippet } from '@/lib/snippets';
 
 
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
@@ -38,12 +38,28 @@ type BackendLanguage = 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r';
 
 interface CodeEditorProps {
     codes: AllCodes;
-    setCodes: React.Dispatch<React.SetStateAction<AllCodes>>;
+    selectedLanguage: Language;
+    setSelectedLanguage: React.Dispatch<React.SetStateAction<Language>>;
+    onFrontendCodeChange: (file: FileType, newCode: string) => void;
+    onCodeChange: (language: Language, newCode: string) => void;
     onShare: (code: string, language: string) => void;
+    snippets: Snippet[];
+    fetchSnippets: () => Promise<void>;
+    onSaveSnippet: (name: string, lang: Language) => Promise<void>;
+    onLoadSnippet: (snippet: Snippet) => void;
+    onDeleteSnippet: (id: string) => Promise<void>;
 }
 
-const MemoizedEditor = React.memo(
-  function MemoizedEditor({ language, value, onChange, options, isSyntaxHighlightingEnabled, theme }: {
+// Editor component with debouncing to prevent re-renders on every keystroke
+const DebouncedEditor = React.memo(
+  function DebouncedEditor({
+    language,
+    value,
+    onChange,
+    options,
+    isSyntaxHighlightingEnabled,
+    theme,
+  }: {
     language: string;
     value: string;
     onChange: (value: string | undefined) => void;
@@ -51,14 +67,42 @@ const MemoizedEditor = React.memo(
     isSyntaxHighlightingEnabled: boolean;
     theme: string;
   }) {
+    const [internalValue, setInternalValue] = useState(value);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        setInternalValue(value);
+    }, [value]);
+
+    const handleLocalChange = (newValue: string | undefined) => {
+        const val = newValue || '';
+        setInternalValue(val);
+
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(() => {
+            onChange(val);
+        }, 250); // 250ms debounce
+    };
+
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
+
     return (
       <div className="flex-1 w-full h-full bg-muted/50 rounded-md overflow-hidden">
         <Editor
           height="100%"
           language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
-          value={value}
+          value={internalValue}
           theme={theme}
-          onChange={onChange}
+          onChange={handleLocalChange}
           options={options}
           loading={<Loader2 className="h-8 w-8 animate-spin" />}
         />
@@ -68,14 +112,24 @@ const MemoizedEditor = React.memo(
 );
 
 
-export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps) {
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>('frontend');
+export default function CodeEditor({ 
+    codes,
+    selectedLanguage,
+    setSelectedLanguage,
+    onFrontendCodeChange,
+    onCodeChange,
+    onShare,
+    snippets,
+    fetchSnippets,
+    onSaveSnippet,
+    onLoadSnippet,
+    onDeleteSnippet
+}: CodeEditorProps) {
   const [activeTab, setActiveTab] = useState<FileType>('html');
   const [previewDoc, setPreviewDoc] = useState('');
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugResult, setDebugResult] = useState('');
   const [isDebugAlertOpen, setIsDebugAlertOpen] = useState(false);
-  const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [snippetName, setSnippetName] = useState('');
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [isLoadOpen, setIsLoadOpen] = useState(false);
@@ -96,11 +150,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const { user } = useAuth();
   const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
 
-  const handleCodeForLanguage = useCallback((lang: Language, newCode: string) => {
-    setCodes(prev => ({...prev, [lang]: newCode}));
-  }, [setCodes]);
-
-
   const loadHistory = useCallback(() => {
     if (typeof window !== 'undefined') {
       const savedHistory = localStorage.getItem(`runHistory-${selectedLanguage}`);
@@ -112,7 +161,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     }
   }, [selectedLanguage]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadHistory();
   }, [loadHistory]);
 
@@ -131,7 +180,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
 
   const handleRestoreFromHistory = (code: string) => {
     if (selectedLanguage !== 'frontend') {
-      handleCodeForLanguage(selectedLanguage, code);
+      onCodeChange(selectedLanguage, code);
     }
   };
 
@@ -152,53 +201,20 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
         combinedDoc = `<html><body><script>${codes.javascript}</script></body></html>`
     }
 
-    const timeout = setTimeout(() => {
-        setPreviewDoc(combinedDoc);
-    }, 500);
-    return () => clearTimeout(timeout);
+    setPreviewDoc(combinedDoc);
   }, [codes, selectedLanguage]);
 
-  const fetchSnippets = useCallback(async () => {
-    setIsActionLoading(true);
-    try {
-      if (user) {
-        const firestoreSnippets = await getSnippets(user.uid);
-        setSnippets(firestoreSnippets);
-      } else {
-        setSnippets(getLocalSnippets());
-      }
-    } catch (error) {
-      console.error("Failed to fetch snippets:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not load your snippets.' });
-    } finally {
-      setIsActionLoading(false);
-    }
-  }, [user, toast]);
 
-  React.useEffect(() => {
-    fetchSnippets();
-  }, [fetchSnippets]);
-  
-  React.useEffect(() => {
-    const cleanup = updatePreview();
-    return cleanup;
+  useEffect(() => {
+    updatePreview();
   }, [codes, selectedLanguage, updatePreview]);
 
-  const handleCodeChange = useCallback((language: FileType, value: string | undefined) => {
-    if (value === undefined) return;
-    setCodes(prev => ({
-      ...prev,
-      frontend: { ...prev.frontend, [language]: value }
-    }));
-  }, [setCodes]);
-
-  const handleSingleFileChange = useCallback((value: string | undefined) => {
-    if (value === undefined) return;
-    if (selectedLanguage !== 'frontend') {
-      handleCodeForLanguage(selectedLanguage, value);
+  useEffect(() => {
+    if (isLoadOpen) {
+      fetchSnippets();
     }
-  }, [selectedLanguage, handleCodeForLanguage]);
-  
+  }, [isLoadOpen, fetchSnippets]);
+
   const handleRunBackend = async (lang: BackendLanguage) => {
     setIsBackendRunning(true);
     setBackendOutput('');
@@ -283,76 +299,27 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     onShare(codeToShare, langToShare);
   };
 
-  const handleSaveSnippet = async () => {
-    if (!snippetName) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Snippet name cannot be empty.' });
-      return;
-    }
-    
-    setIsActionLoading(true);
-    let codeToSave;
-    if (selectedLanguage === 'frontend') {
-      codeToSave = JSON.stringify(codes.frontend);
-    } else {
-      codeToSave = codes[selectedLanguage as keyof AllCodes] as string;
-    }
-    
-    const snippetData: SnippetData = { name: snippetName, language: selectedLanguage, code: codeToSave };
-
-    try {
-      if (user) {
-        await saveSnippet(user.uid, snippetData);
-      } else {
-        saveLocalSnippet(snippetData);
+  const handleSaveFlow = async () => {
+      if (!snippetName) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Snippet name cannot be empty.' });
+        return;
       }
-      toast({ title: 'Success', description: 'Snippet saved successfully.' });
-      await fetchSnippets(); // Refresh list
+      setIsActionLoading(true);
+      await onSaveSnippet(snippetName, selectedLanguage);
+      setIsActionLoading(false);
       setSnippetName('');
       setIsSaveOpen(false);
-    } catch (error) {
-       toast({ variant: 'destructive', title: 'Error', description: 'Could not save snippet.' });
-    } finally {
-        setIsActionLoading(false);
-    }
-  };
+  }
 
-  const handleLoadSnippet = (snippet: Snippet) => {
-    try {
-      const lang = snippet.language as Language;
-      setSelectedLanguage(lang);
-      if (lang === 'frontend') {
-        const loadedCodes = JSON.parse(snippet.code);
-        if (loadedCodes.html !== undefined && loadedCodes.css !== undefined && loadedCodes.javascript !== undefined) {
-          setCodes(prev => ({ ...prev, frontend: loadedCodes }));
-        } else {
-          throw new Error("Invalid project format.");
-        }
-      } else {
-        setCodes(prev => ({ ...prev, [lang]: snippet.code }));
-      }
-      toast({ title: 'Snippet Loaded', description: `"${snippet.name}" has been loaded into the editor.` });
+  const handleLoadFlow = (snippet: Snippet) => {
+      onLoadSnippet(snippet);
       setIsLoadOpen(false);
-    } catch (e) {
-        console.error("Failed to parse snippet:", e);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load snippet. The data might be corrupted.' });
-    }
   };
   
-  const handleDeleteSnippet = async (id: string) => {
-    setIsActionLoading(true);
-    try {
-        if (user) {
-            await deleteSnippet(user.uid, id);
-        } else {
-            deleteLocalSnippet(id);
-        }
-        toast({ title: 'Snippet Deleted', description: 'The snippet has been removed.' });
-        await fetchSnippets(); // Refresh list
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not delete snippet.' });
-    } finally {
-        setIsActionLoading(false);
-    }
+  const handleDeleteFlow = async (id: string) => {
+      setIsActionLoading(true);
+      await onDeleteSnippet(id);
+      setIsActionLoading(false);
   }
 
   const handleGenerateCode = async () => {
@@ -370,9 +337,9 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
         const result = await generateCodeFromPrompt({ prompt: aiPrompt, language: langForPrompt });
         
         if (selectedLanguage === 'frontend') {
-            handleCodeChange(activeTab, result.code);
+            onFrontendCodeChange(activeTab, result.code);
         } else {
-            handleCodeForLanguage(selectedLanguage, result.code)
+            onCodeChange(selectedLanguage, result.code)
         }
         
         toast({ title: 'Code Generated', description: 'The AI has generated the code and placed it in the editor.' });
@@ -411,10 +378,10 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const handleInsertSuggestion = () => {
     if (selectedLanguage === 'frontend') {
       const currentCode = codes.frontend[activeTab];
-      handleCodeChange(activeTab, currentCode + suggestion);
+      onFrontendCodeChange(activeTab, currentCode + suggestion);
     } else {
       const currentCode = codes[selectedLanguage as keyof AllCodes] as string;
-      handleSingleFileChange(currentCode + suggestion);
+      onCodeChange(selectedLanguage, currentCode + suggestion);
     }
     setSuggestion('');
   };
@@ -484,13 +451,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
   const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
 
-  const currentCode = useMemo(() => {
-    if (selectedLanguage === 'frontend') {
-      return codes.frontend[activeTab];
-    }
-    return codes[selectedLanguage as Exclude<Language, 'frontend'>];
-  }, [codes, selectedLanguage, activeTab]);
-
   const editorContent = (
       <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isWebPreviewable && (isPreviewVisible ? "md:grid-cols-2" : "md:grid-cols-1"))}>
           <CommonEditorCard className="h-[80vh] md:h-full">
@@ -505,7 +465,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                     <DebouncedEditor
                         language="html"
                         value={codes.frontend.html}
-                        onChange={(val) => handleCodeChange('html', val)}
+                        onChange={(val) => onFrontendCodeChange('html', val || '')}
                         options={editorOptions}
                         isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
                         theme={editorTheme}
@@ -515,7 +475,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                     <DebouncedEditor
                         language="css"
                         value={codes.frontend.css}
-                        onChange={(val) => handleCodeChange('css', val)}
+                        onChange={(val) => onFrontendCodeChange('css', val || '')}
                         options={editorOptions}
                         isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
                         theme={editorTheme}
@@ -525,7 +485,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                     <DebouncedEditor
                         language="javascript"
                         value={codes.frontend.javascript}
-                        onChange={(val) => handleCodeChange('javascript', val)}
+                        onChange={(val) => onFrontendCodeChange('javascript', val || '')}
                         options={editorOptions}
                         isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
                         theme={editorTheme}
@@ -533,7 +493,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                   </TabsContent>
                 </CardContent>
               </Tabs>
-            ) : isBackendLang ? (
+            ) : (
                 <div className="flex flex-col gap-4 h-full">
                     <CardHeader>
                         <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
@@ -542,33 +502,14 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                     <CardContent className="flex-1 flex flex-col gap-4">
                         <DebouncedEditor
                             language={selectedLanguage}
-                            value={codes[selectedLanguage as BackendLanguage]}
-                            onChange={handleSingleFileChange}
+                            value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]}
+                            onChange={(val) => onCodeChange(selectedLanguage, val || '')}
                             options={editorOptions}
                             isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
                             theme={editorTheme}
                         />
                     </CardContent>
                 </div>
-            ) : (
-              <>
-                <CardHeader>
-                    <div>
-                        <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
-                        <CardDescription>Live preview for HTML-based projects.</CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col gap-4">
-                  <DebouncedEditor
-                    language={selectedLanguage}
-                    value={codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>]}
-                    onChange={handleSingleFileChange}
-                    options={editorOptions}
-                    isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
-                    theme={editorTheme}
-                  />
-                </CardContent>
-              </>
             )}
           </CommonEditorCard>
           
@@ -652,7 +593,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
           <DialogContent>
             <DialogHeader><DialogTitle>Save Snippet</DialogTitle><DialogDescription>{user ? "Your snippet will be saved to your account." : "You are not logged in. Snippets will be saved to this browser only."}</DialogDescription></DialogHeader>
             <Input value={snippetName} onChange={(e) => setSnippetName(e.target.value)} placeholder="Enter snippet name" />
-            <DialogFooter><Button onClick={() => setIsSaveOpen(false)} variant="outline">Cancel</Button><Button onClick={handleSaveSnippet} disabled={isActionLoading}>{isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save</Button></DialogFooter>
+            <DialogFooter><Button onClick={() => setIsSaveOpen(false)} variant="outline">Cancel</Button><Button onClick={handleSaveFlow} disabled={isActionLoading}>{isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -667,13 +608,13 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                   {snippets.length > 0 ? (
                     snippets.map((s) => (
                       <div key={s.id} className="group flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
-                        <button onClick={() => handleLoadSnippet(s)} className="text-left flex-1">
+                        <button onClick={() => handleLoadFlow(s)} className="text-left flex-1">
                           <p className="font-semibold">{s.name}</p>
                           <p className="text-sm text-muted-foreground">{s.language.toUpperCase()} - {new Date(s.createdAt as string).toLocaleDateString()}</p>
                         </button>
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger asChild><Button variant="ghost" size="icon" className="text-muted-foreground opacity-0 group-hover:opacity-100" onClick={() => handleDeleteSnippet(s.id)} disabled={isActionLoading}>{isActionLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}</Button></TooltipTrigger>
+                            <TooltipTrigger asChild><Button variant="ghost" size="icon" className="text-muted-foreground opacity-0 group-hover:opacity-100" onClick={() => handleDeleteFlow(s.id)} disabled={isActionLoading}>{isActionLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}</Button></TooltipTrigger>
                              <TooltipContent><p>Delete Snippet</p></TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -706,45 +647,3 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     </div>
   );
 }
-
-function DebouncedEditor({ value, onChange, ...props }: Omit<React.ComponentProps<typeof MemoizedEditor>, 'value' | 'onChange'> & { value: string; onChange: (value: string) => void; }) {
-  const [internalValue, setInternalValue] = useState(value);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // When the external value changes (e.g., loading a snippet), update the internal value
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
-
-  const handleEditorChange = useCallback((newValue: string | undefined) => {
-    const val = newValue || '';
-    setInternalValue(val);
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      onChange(val);
-    }, 250); // 250ms debounce delay
-  }, [onChange]);
-  
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return (
-    <MemoizedEditor
-      {...props}
-      value={internalValue}
-      onChange={handleEditorChange}
-    />
-  );
-}
-
-    
