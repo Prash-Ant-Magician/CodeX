@@ -14,24 +14,15 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft, Share2, AlertTriangle, CheckCircle, History } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft, Share2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { type AllCodes } from './main-layout';
-import { compileCode } from '@/ai/flows/compile-code';
-import { runPythonCode } from '@/ai/flows/run-python';
-import { runJavaCode } from '@/ai/flows/run-java';
-import { runTypescriptCode } from '@/ai/flows/run-typescript';
-import { runRubyCode } from '@/ai/flows/run-ruby';
-import { runRCode } from '@/ai/flows/run-r';
-import { Alert, AlertTitle, AlertDescription } from './ui/alert';
-import RunHistory, { type HistoryEntry } from './run-history';
-import { Textarea } from './ui/textarea';
 
 
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
@@ -43,7 +34,6 @@ interface CodeEditorProps {
     onShare: (code: string, language: string) => void;
 }
 
-const LOCAL_STORAGE_KEY_PREFIX = 'codeleap-run-history-';
 
 export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps) {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('frontend');
@@ -63,38 +53,14 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
-  
-  // States for backend runners
-  const [isRunnerLoading, setIsRunnerLoading] = useState(false);
-  const [runnerResult, setRunnerResult] = useState<any>(null);
-  const [runHistory, setRunHistory] = useState<HistoryEntry[]>([]);
 
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
-  
-  const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${selectedLanguage}`;
 
   const handleCodeForLanguage = (lang: Language, newCode: string) => {
     setCodes(prev => ({...prev, [lang]: newCode}));
   }
-
-  React.useEffect(() => {
-    if (!['frontend', 'html', 'css', 'javascript'].includes(selectedLanguage)) {
-        try {
-          const savedHistory = localStorage.getItem(storageKey);
-          if (savedHistory) {
-            setRunHistory(JSON.parse(savedHistory));
-          } else {
-            setRunHistory([]);
-          }
-        } catch (error) {
-            console.error("Could not load run history from local storage:", error);
-            setRunHistory([]);
-        }
-    }
-  }, [selectedLanguage, storageKey]);
-
 
   const updatePreview = useCallback(() => {
     let combinedDoc = '';
@@ -161,53 +127,11 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
       handleCodeForLanguage(selectedLanguage, value);
     }
   };
-  
+
   const handleRun = () => {
-     if (['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage)) {
-        handleBackendRun();
-    } else {
-        updatePreview();
-        setIsPreviewVisible(true);
-        toast({ title: 'Code Executed', description: 'Preview has been updated.' });
-    }
-  };
-
-  const handleBackendRun = async () => {
-    const code = codes[selectedLanguage as keyof typeof codes] as string;
-    if (!code) return;
-
-    setIsRunnerLoading(true);
-    setRunnerResult(null);
-    let output;
-
-    try {
-        switch(selectedLanguage) {
-            case 'c': output = await compileCode({ code }); break;
-            case 'python': output = await runPythonCode({ code }); break;
-            case 'java': output = await runJavaCode({ code }); break;
-            case 'typescript': output = await runTypescriptCode({ code }); break;
-            case 'ruby': output = await runRubyCode({ code }); break;
-            case 'r': output = await runRCode({ code }); break;
-            default: throw new Error("Unsupported language for backend execution.");
-        }
-        setRunnerResult(output);
-      
-        const newHistoryEntry: HistoryEntry = {
-            id: new Date().toISOString(),
-            code,
-            result: output,
-            timestamp: new Date().toISOString()
-        };
-        const updatedHistory = [newHistoryEntry, ...runHistory].slice(0, 50);
-        setRunHistory(updatedHistory);
-        localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
-
-    } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred while running the code.' });
-    } finally {
-      setIsRunnerLoading(false);
-    }
+    updatePreview();
+    setIsPreviewVisible(true);
+    toast({ title: 'Code Executed', description: 'Preview has been updated.' });
   };
 
   const handleDebugCode = async () => {
@@ -383,12 +307,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     setSuggestion('');
   };
   
-  const handleClearHistory = () => {
-    setRunHistory([]);
-    localStorage.removeItem(storageKey);
-    toast({ description: "Run history cleared." });
-  };
-
   const editorOptions = {
       fontSize: editorFontSize === 'small' ? 12 : editorFontSize === 'medium' ? 14 : 16,
       tabSize: tabSize,
@@ -414,100 +332,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     );
   }
 
-  const renderBackendRunner = () => {
-    const currentCode = codes[selectedLanguage as keyof AllCodes] as string;
-    const isCompilerLanguage = ['c', 'java', 'typescript'].includes(selectedLanguage);
-
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:h-[calc(100vh-10rem)]">
-            <Card className="flex flex-col h-[60vh] md:h-full">
-                <CardHeader>
-                    <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
-                    <CardDescription>Write and run {selectedLanguage} code. The AI will simulate execution.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col gap-4">
-                     {renderMonacoEditor(selectedLanguage, currentCode, handleSingleFileChange)}
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                     <div className="flex gap-2">
-                        <Button onClick={handleRun} disabled={isRunnerLoading} className="bg-primary hover:bg-primary/90">
-                            {isRunnerLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Running...</> : <><Play className="mr-2 h-4 w-4" /> Run</>}
-                        </Button>
-                         {isAiSuggestionsEnabled && (
-                          <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
-                            <PopoverTrigger asChild>
-                               <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
-                                    {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80">
-                                {isSuggesting ? (
-                                    <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
-                                ) : suggestion ? (
-                                    <div className="grid gap-4">
-                                      <div className="space-y-2">
-                                        <h4 className="font-medium leading-none">AI Suggestion</h4>
-                                        <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
-                                      </div>
-                                      <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                                      <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
-                                    </div>
-                                ) : (
-                                    <p className="p-4 text-sm text-center text-muted-foreground">Click the button to generate a suggestion.</p>
-                                )}
-                              </PopoverContent>
-                          </Popover>
-                        )}
-                     </div>
-                </CardFooter>
-            </Card>
-             <Card className="flex flex-col h-[60vh] md:h-full">
-                <Tabs defaultValue="output" className="flex-1 flex flex-col">
-                    <CardHeader>
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="output">Output</TabsTrigger>
-                            <TabsTrigger value="history"><History className="mr-2 h-4 w-4" /> History ({runHistory.length})</TabsTrigger>
-                        </TabsList>
-                    </CardHeader>
-                     <TabsContent value="output" className="flex-1 bg-muted/50 rounded-b-lg overflow-y-auto p-4 m-0">
-                        {isRunnerLoading ? (
-                            <div className="flex items-center justify-center h-full"><Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" /><p>Running code...</p></div>
-                        ): runnerResult ? (
-                            <div className="flex flex-col gap-4">
-                                {isCompilerLanguage ? (
-                                    <>
-                                        {runnerResult.success ? (
-                                            <Alert className="border-green-500/50 text-green-500"><CheckCircle className="h-4 w-4" /><AlertTitle>Compilation Successful</AlertTitle><AlertDescription className="font-code whitespace-pre-wrap">{runnerResult.compilationOutput}</AlertDescription></Alert>
-                                        ) : (
-                                            <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Compilation Failed</AlertTitle><AlertDescription className="font-code whitespace-pre-wrap">{runnerResult.compilationOutput}</AlertDescription></Alert>
-                                        )}
-                                        {runnerResult.executionOutput && (
-                                             <div><h3 className="font-semibold mb-2">Execution Output:</h3><pre className="bg-background p-4 rounded-md overflow-x-auto text-sm font-code">{runnerResult.executionOutput}</pre></div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <>
-                                        {runnerResult.success ? (
-                                            <div><h3 className="font-semibold mb-2">Execution Output:</h3><pre className="bg-background p-4 rounded-md overflow-x-auto text-sm font-code">{runnerResult.executionOutput || 'No output produced.'}</pre></div>
-                                        ) : (
-                                            <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Execution Failed</AlertTitle><AlertDescription className="font-code whitespace-pre-wrap">{runnerResult.errorOutput}</AlertDescription></Alert>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        ): (
-                            <div className="flex items-center justify-center h-full text-muted-foreground"><p>Click "Run" to see the output.</p></div>
-                        )}
-                    </TabsContent>
-                    <TabsContent value="history" className="flex-1 bg-muted/50 rounded-b-lg overflow-y-auto m-0">
-                        <RunHistory history={runHistory} onRestore={(code) => handleSingleFileChange(code)} onClear={handleClearHistory} />
-                    </TabsContent>
-                </Tabs>
-            </Card>
-        </div>
-    )
-  }
-
   const renderEditor = () => {
     switch (selectedLanguage) {
         case 'c':
@@ -516,7 +340,8 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
         case 'typescript':
         case 'ruby':
         case 'r':
-            return renderBackendRunner();
+            // This case should not be hit with the new unified layout, but kept as a fallback.
+             return <div>Backend runner for {selectedLanguage} to be implemented here.</div>
         default: // 'frontend', 'html', 'css', 'javascript'
             const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
             return (
@@ -545,7 +370,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
           
                     <CardFooter className="flex flex-wrap gap-2 justify-between">
                       <div className="flex flex-wrap gap-2">
-                          <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css'}>
+                          <Button onClick={handleRun} className="bg-primary hover:bg-primary/90">
                             <Play className="mr-2 h-4 w-4" /> Run
                           </Button>
                           <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
@@ -683,7 +508,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
         <Dialog open={isAiGenerateOpen} onOpenChange={setIsAiGenerateOpen}>
             <DialogContent>
                 <DialogHeader><DialogTitle>Generate Code with AI</DialogTitle><DialogDescription>Describe the code you want to generate. Be as specific as possible. The generated code will replace the content in the currently active editor tab.</DialogDescription></DialogHeader>
-                <Textarea value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="e.g., 'a login form with email and password fields' or 'a function that reverses a string'" rows={4}/>
+                <Input value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="e.g., 'a login form with email and password fields'" />
                 <DialogFooter><Button onClick={() => setIsAiGenerateOpen(false)} variant="outline">Cancel</Button><Button onClick={handleGenerateCode} disabled={isGenerating}>{isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : "Generate"}</Button></DialogFooter>
             </DialogContent>
         </Dialog>
