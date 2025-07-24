@@ -2,19 +2,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
-  useSidebar,
-} from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users, PlusCircle, PanelLeft } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users, PlusCircle, Menu } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
@@ -23,7 +13,6 @@ import FeedbackForm from '@/components/feedback-form';
 import SettingsPage, { SettingsProvider } from '@/components/settings';
 import QaSessions from '@/components/qa-sessions';
 import CommunityForum from '@/components/community-forum';
-import { Toaster } from './ui/toaster';
 import { useAuth, signOut } from '@/lib/firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,6 +34,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 const postSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
@@ -54,6 +45,16 @@ const postSchema = z.object({
 
 
 type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings' | 'qa' | 'forum';
+
+const navItems: { view: ActiveView; label: string; icon: React.ReactNode }[] = [
+    { view: 'editor', label: 'Code Editor', icon: <Code className="h-5 w-5" /> },
+    { view: 'learn', label: 'Learn', icon: <BookOpen className="h-5 w-5" /> },
+    { view: 'challenges', label: 'Challenges', icon: <Trophy className="h-5 w-5" /> },
+    { view: 'forum', label: 'Forum', icon: <Users className="h-5 w-5" /> },
+    { view: 'qa', label: 'Q&A Sessions', icon: <Mic className="h-5 w-5" /> },
+    { view: 'feedback', label: 'Feedback', icon: <MessageSquare className="h-5 w-5" /> },
+    { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" /> },
+];
 
 const defaultCodes = {
   frontend: {
@@ -192,20 +193,61 @@ function UserNav() {
   );
 }
 
-function MainHeaderContent() {
-  const { toggleSidebar } = useSidebar();
-  return (
-     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
-      <div className="flex items-center gap-2">
-        <button onClick={toggleSidebar} className="flex items-center gap-2">
-          <Logo />
-        </button>
-      </div>
-      <div className="flex flex-1 items-center justify-end gap-4">
-          <UserNav />
-      </div>
-    </header>
-  );
+const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; setActiveView: (view: ActiveView) => void; }) => {
+    return (
+        <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
+            <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
+                <Logo />
+                <nav className="hidden md:flex flex-1 items-center justify-center space-x-6 text-sm font-medium">
+                    {navItems.map(item => (
+                        <Link
+                            key={item.view}
+                            href="#"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                setActiveView(item.view);
+                            }}
+                            className={cn(
+                                "transition-colors hover:text-foreground/80",
+                                activeView === item.view ? "text-foreground" : "text-foreground/60"
+                            )}
+                        >
+                            {item.label}
+                        </Link>
+                    ))}
+                </nav>
+                <div className="flex items-center justify-end space-x-4">
+                    <UserNav />
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" className="md:hidden">
+                                <Menu className="h-6 w-6" />
+                                <span className="sr-only">Toggle Menu</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                            <nav className="flex flex-col gap-4">
+                                {navItems.map(item => (
+                                    <SheetClose asChild key={item.view}>
+                                        <Link
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setActiveView(item.view);
+                                            }}
+                                            className="flex items-center gap-2 rounded-lg p-3 text-lg font-medium hover:bg-muted"
+                                        >
+                                            {item.icon} {item.label}
+                                        </Link>
+                                    </SheetClose>
+                                ))}
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
+                </div>
+            </div>
+        </header>
+    );
 }
 
 export function MainLayout() {
@@ -281,99 +323,10 @@ export function MainLayout() {
 
   return (
     <SettingsProvider>
-      <SidebarProvider>
-        <Sidebar collapsible="icon">
-          <SidebarHeader>
-            <Logo />
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView('editor')}
-                  isActive={activeView === 'editor'}
-                  tooltip="Code Editor"
-                  size="lg"
-                >
-                  <Code />
-                  <span>Code Editor</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView('learn')}
-                  isActive={activeView === 'learn'}
-                  tooltip="Learning Modules"
-                   size="lg"
-                >
-                  <BookOpen />
-                  <span>Learn</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView('challenges')}
-                  isActive={activeView === 'challenges'}
-                  tooltip="Coding Challenges"
-                   size="lg"
-                >
-                  <Trophy />
-                  <span>Challenges</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView('forum')}
-                  isActive={activeView === 'forum'}
-                  tooltip="Community Forum"
-                   size="lg"
-                >
-                  <Users />
-                  <span>Forum</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView('qa')}
-                  isActive={activeView === 'qa'}
-                  tooltip="Q&A Sessions"
-                   size="lg"
-                >
-                  <Mic />
-                  <span>Q&A Sessions</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView('feedback')}
-                  isActive={activeView === 'feedback'}
-                  tooltip="Feedback"
-                   size="lg"
-                >
-                  <MessageSquare />
-                  <span>Feedback</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView('settings')}
-                  isActive={activeView === 'settings'}
-                  tooltip="Settings"
-                   size="lg"
-                >
-                  <Settings />
-                  <span>Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarContent>
-        </Sidebar>
-        <SidebarInset>
-          <MainHeaderContent />
-          <main className="p-4 md:p-6">{renderContent()}</main>
-        </SidebarInset>
-        <Toaster />
-
+        <div className="relative flex min-h-screen flex-col">
+            <MainHeader activeView={activeView} setActiveView={setActiveView} />
+            <main className="flex-1 container p-4 md:p-6">{renderContent()}</main>
+        </div>
         {/* Global Create Post Dialog */}
         <Dialog open={isCreatePostOpen} onOpenChange={setIsCreatePostOpen}>
             <DialogContent className="sm:max-w-[625px]">
@@ -403,8 +356,6 @@ export function MainLayout() {
             </Form>
             </DialogContent>
         </Dialog>
-
-      </SidebarProvider>
     </SettingsProvider>
   );
 }
