@@ -109,6 +109,10 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
         </html>`;
     } else if (selectedLanguage === 'html') {
         combinedDoc = codes.html;
+    } else if (selectedLanguage === 'javascript') {
+        // For JS-only, we just want to run the script, not render anything.
+        // We can create a simple HTML doc that just runs the script for console output.
+        combinedDoc = `<html><body><script>${codes.javascript}</script></body></html>`
     }
 
     const timeout = setTimeout(() => {
@@ -514,7 +518,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
         case 'r':
             return renderBackendRunner();
         default: // 'frontend', 'html', 'css', 'javascript'
-            const isWebPreviewable = ['frontend', 'html'].includes(selectedLanguage);
+            const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
             return (
               <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isPreviewVisible && isWebPreviewable && "md:grid-cols-2")}>
                   <Card className="flex flex-col h-[60vh] md:h-full">
@@ -532,7 +536,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                       </Tabs>
                     ) : (
                       <>
-                        <CardHeader><CardTitle>{selectedLanguage.toUpperCase()} Editor</CardTitle><CardDescription>Live preview for HTML-based projects.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle><CardDescription>Live preview for HTML-based projects.</CardDescription></CardHeader>
                         <CardContent className="flex-1 flex flex-col gap-4">
                           {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r'>], handleSingleFileChange)}
                         </CardContent>
@@ -541,7 +545,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
           
                     <CardFooter className="flex flex-wrap gap-2 justify-between">
                       <div className="flex flex-wrap gap-2">
-                          <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css' || selectedLanguage === 'javascript'}>
+                          <Button onClick={handleRun} className="bg-primary hover:bg-primary/90" disabled={selectedLanguage === 'css'}>
                             <Play className="mr-2 h-4 w-4" /> Run
                           </Button>
                           <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
@@ -595,7 +599,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                   )}
           
                   {isWebPreviewable && !isPreviewVisible && (
-                      <div className="absolute top-0 right-4">
+                      <div className="fixed top-20 right-4 z-20">
                            <TooltipProvider>
                               <Tooltip>
                                   <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}><ChevronUp className="h-4 w-4" /></Button></TooltipTrigger>
