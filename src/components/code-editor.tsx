@@ -5,8 +5,8 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnippets, deleteLocalSnippet, Snippet, SnippetData } from '@/lib/snippets';
@@ -23,10 +23,18 @@ import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { type AllCodes } from './main-layout';
+import { runPythonCode } from '@/ai/flows/run-python';
+import { runJavaCode } from '@/ai/flows/run-java';
+import { runTypescriptCode } from '@/ai/flows/run-typescript';
+import { compileCode } from '@/ai/flows/compile-code';
+import { runRCode } from '@/ai/flows/run-r';
+import { runRubyCode } from '@/ai/flows/run-ruby';
+import RunHistory, { type HistoryEntry } from './run-history';
 
 
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
 type FileType = 'html' | 'css' | 'javascript';
+type BackendLanguage = 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r';
 
 interface CodeEditorProps {
     codes: AllCodes;
@@ -53,6 +61,11 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
+  
+  const [backendOutput, setBackendOutput] = useState('');
+  const [backendError, setBackendError] = useState('');
+  const [isBackendRunning, setIsBackendRunning] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -61,6 +74,40 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const handleCodeForLanguage = (lang: Language, newCode: string) => {
     setCodes(prev => ({...prev, [lang]: newCode}));
   }
+
+  const loadHistory = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const savedHistory = localStorage.getItem(`runHistory-${selectedLanguage}`);
+      if (savedHistory) {
+        setHistory(JSON.parse(savedHistory));
+      } else {
+        setHistory([]);
+      }
+    }
+  }, [selectedLanguage]);
+
+  React.useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  const addToHistory = (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
+    const newEntry: HistoryEntry = {
+      ...entry,
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+    };
+    const newHistory = [newEntry, ...history];
+    setHistory(newHistory);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`runHistory-${selectedLanguage}`, JSON.stringify(newHistory));
+    }
+  };
+
+  const handleRestoreFromHistory = (code: string) => {
+    if (selectedLanguage !== 'frontend') {
+      handleCodeForLanguage(selectedLanguage, code);
+    }
+  };
 
   const updatePreview = useCallback(() => {
     let combinedDoc = '';
@@ -76,8 +123,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     } else if (selectedLanguage === 'html') {
         combinedDoc = codes.html;
     } else if (selectedLanguage === 'javascript') {
-        // For JS-only, we just want to run the script, not render anything.
-        // We can create a simple HTML doc that just runs the script for console output.
         combinedDoc = `<html><body><script>${codes.javascript}</script></body></html>`
     }
 
@@ -127,11 +172,52 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
       handleCodeForLanguage(selectedLanguage, value);
     }
   };
+  
+  const handleRunBackend = async (lang: BackendLanguage) => {
+    setIsBackendRunning(true);
+    setBackendOutput('');
+    setBackendError('');
+    const code = codes[lang];
+    let result: any = null;
+    
+    try {
+        switch(lang) {
+            case 'python': result = await runPythonCode({ code }); break;
+            case 'java': result = await runJavaCode({ code }); break;
+            case 'typescript': result = await runTypescriptCode({ code }); break;
+            case 'c': result = await compileCode({ code }); break;
+            case 'r': result = await runRCode({ code }); break;
+            case 'ruby': result = await runRubyCode({ code }); break;
+        }
+
+        if (result) {
+            if (result.success) {
+                const output = result.executionOutput || result.compilationOutput || '';
+                setBackendOutput(output);
+                addToHistory({ code, result: { success: true, output } });
+            } else {
+                const errorOutput = result.errorOutput || result.compilationOutput || 'Unknown error';
+                setBackendError(errorOutput);
+                addToHistory({ code, result: { success: false, output: errorOutput } });
+            }
+        }
+    } catch (e: any) {
+        const errorMsg = 'An unexpected error occurred.';
+        setBackendError(errorMsg);
+        addToHistory({ code, result: { success: false, output: errorMsg } });
+    } finally {
+        setIsBackendRunning(false);
+    }
+  };
 
   const handleRun = () => {
-    updatePreview();
-    setIsPreviewVisible(true);
-    toast({ title: 'Code Executed', description: 'Preview has been updated.' });
+    if (['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage)) {
+        handleRunBackend(selectedLanguage as BackendLanguage);
+    } else {
+        updatePreview();
+        setIsPreviewVisible(true);
+        toast({ title: 'Code Executed', description: 'Preview has been updated.' });
+    }
   };
 
   const handleDebugCode = async () => {
@@ -162,8 +248,8 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     let codeToShare: string;
     let langToShare: string;
     if (selectedLanguage === 'frontend') {
-        codeToShare = codes.frontend[activeTab];
-        langToShare = activeTab;
+        codeToShare = `HTML:\n\`\`\`html\n${codes.frontend.html}\n\`\`\`\n\nCSS:\n\`\`\`css\n${codes.frontend.css}\n\`\`\`\n\nJavaScript:\n\`\`\`javascript\n${codes.frontend.javascript}\n\`\`\``;
+        langToShare = "web";
     } else {
         codeToShare = codes[selectedLanguage as Exclude<Language, 'frontend'>];
         langToShare = selectedLanguage;
@@ -331,111 +417,146 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
         </div>
     );
   }
+  
+  const CommonEditorCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <Card className={cn("flex flex-col", className)}>
+        {children}
+        <CardFooter className="flex flex-wrap gap-2 justify-between">
+          <div className="flex flex-wrap gap-2">
+              <Button onClick={handleRun} disabled={isBackendRunning} className="bg-primary hover:bg-primary/90">
+                {isBackendRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />} Run
+              </Button>
+              <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
+                {isDebugging ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Debugging...</> : <><Bug className="mr-2 h-4 w-4" /> Debug</>}
+              </Button>
+               <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                  <Sparkles className="mr-2 h-4 w-4" /> Generate
+              </Button>
+               {isAiSuggestionsEnabled && (
+                  <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
+                      <PopoverTrigger asChild>
+                         <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
+                              {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                         {isSuggesting ? (
+                              <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
+                          ) : suggestion ? (
+                              <div className="grid gap-4">
+                                <div className="space-y-2"><h4 className="font-medium leading-none">AI Suggestion</h4><p className="text-sm text-muted-foreground">The AI suggests the following code.</p></div>
+                                <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                                <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
+                              </div>
+                          ) : (
+                              <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
+                          )}
+                      </PopoverContent>
+                    </Popover>
+                )}
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
+            <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild><Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button></TooltipTrigger>
+                    <TooltipContent><p>Share to Forum</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+          </div>
+        </CardFooter>
+      </Card>
+  );
 
   const renderEditor = () => {
-    switch (selectedLanguage) {
-        case 'c':
-        case 'python':
-        case 'java':
-        case 'typescript':
-        case 'ruby':
-        case 'r':
-            // This case should not be hit with the new unified layout, but kept as a fallback.
-             return <div>Backend runner for {selectedLanguage} to be implemented here.</div>
-        default: // 'frontend', 'html', 'css', 'javascript'
-            const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
-            return (
-              <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isPreviewVisible && isWebPreviewable && "md:grid-cols-2")}>
-                  <Card className="flex flex-col h-[60vh] md:h-full">
-                    {selectedLanguage === 'frontend' ? (
-                      <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
-                        <CardHeader className="flex-row items-center justify-between">
-                            <div className="flex flex-col gap-1.5"><CardTitle>Editor</CardTitle><CardDescription>Multi-file editor for web projects.</CardDescription></div>
-                          <TabsList><TabsTrigger value="html">index.html</TabsTrigger><TabsTrigger value="css">style.css</TabsTrigger><TabsTrigger value="javascript">script.js</TabsTrigger></TabsList>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col gap-4">
-                          <TabsContent value="html" className="flex-1 m-0">{renderMonacoEditor('html', codes.frontend.html, (val) => handleCodeChange('html', val))}</TabsContent>
-                          <TabsContent value="css" className="flex-1 m-0">{renderMonacoEditor('css', codes.frontend.css, (val) => handleCodeChange('css', val))}</TabsContent>
-                          <TabsContent value="javascript" className="flex-1 m-0">{renderMonacoEditor('javascript', codes.frontend.javascript, (val) => handleCodeChange('javascript', val))}</TabsContent>
-                        </CardContent>
-                      </Tabs>
-                    ) : (
-                      <>
-                        <CardHeader><CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle><CardDescription>Live preview for HTML-based projects.</CardDescription></CardHeader>
-                        <CardContent className="flex-1 flex flex-col gap-4">
-                          {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r'>], handleSingleFileChange)}
-                        </CardContent>
-                      </>
-                    )}
-          
-                    <CardFooter className="flex flex-wrap gap-2 justify-between">
-                      <div className="flex flex-wrap gap-2">
-                          <Button onClick={handleRun} className="bg-primary hover:bg-primary/90">
-                            <Play className="mr-2 h-4 w-4" /> Run
-                          </Button>
-                          <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
-                            {isDebugging ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Debugging...</> : <><Bug className="mr-2 h-4 w-4" /> Debug</>}
-                          </Button>
-                           <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                              <Sparkles className="mr-2 h-4 w-4" /> Generate with AI
-                          </Button>
-                           {isAiSuggestionsEnabled && (
-                              <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
-                                  <PopoverTrigger asChild>
-                                     <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
-                                          {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                                      </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-80">
-                                     {isSuggesting ? (
-                                          <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
-                                      ) : suggestion ? (
-                                          <div className="grid gap-4">
-                                            <div className="space-y-2"><h4 className="font-medium leading-none">AI Suggestion</h4><p className="text-sm text-muted-foreground">The AI suggests the following code.</p></div>
-                                            <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                                            <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
-                                          </div>
-                                      ) : (
-                                          <p className="p-4 text-sm text-center text-muted-foreground">Click the button to generate a suggestion.</p>
-                                      )}
-                                  </PopoverContent>
-                                </Popover>
-                            )}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
-                        <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild><Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button></TooltipTrigger>
-                                <TooltipContent><p>Share to Forum</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                  
-                  {isWebPreviewable && isPreviewVisible && (
-                      <Card className="flex flex-col h-[60vh] md:h-full">
-                      <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Preview</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(false)}><ChevronDown className="h-4 w-4" /></Button></CardHeader>
-                      <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
-                      </Card>
-                  )}
-          
-                  {isWebPreviewable && !isPreviewVisible && (
-                      <div className="fixed top-20 right-4 z-20">
-                           <TooltipProvider>
-                              <Tooltip>
-                                  <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}><ChevronUp className="h-4 w-4" /></Button></TooltipTrigger>
-                                  <TooltipContent><p>Show Preview</p></TooltipContent>
-                              </Tooltip>
-                           </TooltipProvider>
-                      </div>
-                  )}
-                </div>
-              );
+    const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
+    const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
+
+    if (isBackendLang) {
+        return (
+            <div className="flex flex-col gap-4 h-[calc(100vh-10rem)]">
+                <CommonEditorCard className="flex-1">
+                    <CardHeader>
+                        <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
+                        <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col gap-4">
+                        {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as BackendLanguage], handleSingleFileChange)}
+                    </CardContent>
+                </CommonEditorCard>
+
+                <Card className="flex-1 flex flex-col">
+                  <Tabs defaultValue="output" className="flex-1 flex flex-col">
+                      <CardHeader className="flex-row justify-between items-center">
+                          <CardTitle>Result</CardTitle>
+                           <TabsList><TabsTrigger value="output">Output</TabsTrigger><TabsTrigger value="history">History</TabsTrigger></TabsList>
+                      </CardHeader>
+                      <CardContent className="flex-1 overflow-auto">
+                        <TabsContent value="output" className="h-full m-0">
+                          {isBackendRunning ? (
+                              <div className="flex items-center justify-center h-full"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                          ) : backendError ? (
+                              <pre className="text-destructive whitespace-pre-wrap p-4 font-mono text-sm">{backendError}</pre>
+                          ) : (
+                              <pre className="whitespace-pre-wrap p-4 font-mono text-sm">{backendOutput}</pre>
+                          )}
+                        </TabsContent>
+                        <TabsContent value="history" className="h-full m-0">
+                           <RunHistory history={history} onRestore={handleRestoreFromHistory} />
+                        </TabsContent>
+                      </CardContent>
+                  </Tabs>
+                </Card>
+            </div>
+        )
     }
+
+    return (
+      <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isPreviewVisible && isWebPreviewable && "md:grid-cols-2")}>
+          <CommonEditorCard className="h-[80vh] md:h-full">
+            {selectedLanguage === 'frontend' ? (
+              <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
+                <CardHeader className="flex-row items-center justify-between">
+                    <div className="flex flex-col gap-1.5"><CardTitle>Editor</CardTitle><CardDescription>Multi-file editor for web projects.</CardDescription></div>
+                  <TabsList><TabsTrigger value="html">index.html</TabsTrigger><TabsTrigger value="css">style.css</TabsTrigger><TabsTrigger value="javascript">script.js</TabsTrigger></TabsList>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-4">
+                  <TabsContent value="html" className="flex-1 m-0">{renderMonacoEditor('html', codes.frontend.html, (val) => handleCodeChange('html', val))}</TabsContent>
+                  <TabsContent value="css" className="flex-1 m-0">{renderMonacoEditor('css', codes.frontend.css, (val) => handleCodeChange('css', val))}</TabsContent>
+                  <TabsContent value="javascript" className="flex-1 m-0">{renderMonacoEditor('javascript', codes.frontend.javascript, (val) => handleCodeChange('javascript', val))}</TabsContent>
+                </CardContent>
+              </Tabs>
+            ) : (
+              <>
+                <CardHeader><CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle><CardDescription>Live preview for HTML-based projects.</CardDescription></CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-4">
+                  {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>], handleSingleFileChange)}
+                </CardContent>
+              </>
+            )}
+          </CommonEditorCard>
+          
+          {isWebPreviewable && isPreviewVisible && (
+              <Card className="flex flex-col h-[80vh] md:h-full">
+              <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Preview</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(false)}><ChevronDown className="h-4 w-4" /></Button></CardHeader>
+              <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
+              </Card>
+          )}
+  
+          {isWebPreviewable && !isPreviewVisible && (
+              <div className="fixed top-20 right-4 z-20">
+                   <TooltipProvider>
+                      <Tooltip>
+                          <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}><ChevronUp className="h-4 w-4" /></Button></TooltipTrigger>
+                          <TooltipContent><p>Show Preview</p></TooltipContent>
+                      </Tooltip>
+                   </TooltipProvider>
+              </div>
+          )}
+        </div>
+      );
   };
 
   return (
