@@ -4,13 +4,15 @@
 import { Braces } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
+import { useSidebar } from './ui/sidebar';
 
-export function Logo({ onClick, className }: { onClick?: () => void, className?: string }) {
+export function Logo({ className }: { className?: string }) {
+  const { toggleSidebar } = useSidebar();
 
   return (
     <Button 
       variant="ghost" 
-      onClick={onClick}
+      onClick={toggleSidebar}
       className={cn(
         "flex items-center gap-2 justify-start w-full h-auto p-0 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent",
         className

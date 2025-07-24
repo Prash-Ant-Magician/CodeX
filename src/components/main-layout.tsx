@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
+  SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users } from 'lucide-react';
@@ -36,7 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+
 
 type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings' | 'qa' | 'forum';
 
@@ -187,7 +188,7 @@ function SidebarHeaderContent() {
 }
 
 function MainHeaderContent() {
-  const { state, toggleSidebar } = useSidebar();
+  const { state } = useSidebar();
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
@@ -195,7 +196,7 @@ function MainHeaderContent() {
            <div className="flex items-center gap-2">
             <SidebarTrigger className="sm:hidden" />
             <div className="hidden sm:flex">
-               <Logo onClick={toggleSidebar} />
+               <Logo />
             </div>
            </div>
         ) : (
@@ -247,6 +248,7 @@ export function MainLayout() {
                   onClick={() => setActiveView('editor')}
                   isActive={activeView === 'editor'}
                   tooltip="Code Editor"
+                  size="lg"
                 >
                   <Code />
                   <span>Code Editor</span>
@@ -257,6 +259,7 @@ export function MainLayout() {
                   onClick={() => setActiveView('learn')}
                   isActive={activeView === 'learn'}
                   tooltip="Learning Modules"
+                   size="lg"
                 >
                   <BookOpen />
                   <span>Learn</span>
@@ -267,6 +270,7 @@ export function MainLayout() {
                   onClick={() => setActiveView('challenges')}
                   isActive={activeView === 'challenges'}
                   tooltip="Coding Challenges"
+                   size="lg"
                 >
                   <Trophy />
                   <span>Challenges</span>
@@ -277,6 +281,7 @@ export function MainLayout() {
                   onClick={() => setActiveView('forum')}
                   isActive={activeView === 'forum'}
                   tooltip="Community Forum"
+                   size="lg"
                 >
                   <Users />
                   <span>Forum</span>
@@ -286,10 +291,11 @@ export function MainLayout() {
                 <SidebarMenuButton
                   onClick={() => setActiveView('qa')}
                   isActive={activeView === 'qa'}
-                  tooltip="Q&amp;A Sessions"
+                  tooltip="Q&A Sessions"
+                   size="lg"
                 >
                   <Mic />
-                  <span>Q&amp;A Sessions</span>
+                  <span>Q&A Sessions</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -297,6 +303,7 @@ export function MainLayout() {
                   onClick={() => setActiveView('feedback')}
                   isActive={activeView === 'feedback'}
                   tooltip="Feedback"
+                   size="lg"
                 >
                   <MessageSquare />
                   <span>Feedback</span>
@@ -307,6 +314,7 @@ export function MainLayout() {
                   onClick={() => setActiveView('settings')}
                   isActive={activeView === 'settings'}
                   tooltip="Settings"
+                   size="lg"
                 >
                   <Settings />
                   <span>Settings</span>
