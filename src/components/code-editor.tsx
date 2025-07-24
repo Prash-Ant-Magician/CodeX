@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Textarea } from '@/components/ui/textarea';
+import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -23,7 +23,6 @@ import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { type AllCodes } from './main-layout';
-import { playKeystrokeSound } from '@/lib/sounds';
 import { compileCode } from '@/ai/flows/compile-code';
 import { runPythonCode } from '@/ai/flows/run-python';
 import { runJavaCode } from '@/ai/flows/run-java';
@@ -32,6 +31,7 @@ import { runRubyCode } from '@/ai/flows/run-ruby';
 import { runRCode } from '@/ai/flows/run-r';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import RunHistory, { type HistoryEntry } from './run-history';
+import { Textarea } from './ui/textarea';
 
 
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
@@ -71,7 +71,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
 
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled } = useSettings();
+  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
   
   const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${selectedLanguage}`;
 
@@ -95,43 +95,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     }
   }, [selectedLanguage, storageKey]);
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    updateFn: (newValue: string) => void
-  ) => {
-    const target = e.target as HTMLTextAreaElement;
-    const { selectionStart, value } = target;
-
-    if (isTypingSoundEnabled) {
-        playKeystrokeSound();
-    }
-    
-    if (autoBrackets) {
-        const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
-        const key = e.key as keyof typeof bracketPairs;
-
-        if (key in bracketPairs) {
-          e.preventDefault();
-          const closingBracket = bracketPairs[key];
-          const newValue = value.substring(0, selectionStart) + key + closingBracket + value.substring(selectionStart);
-          updateFn(newValue);
-          setTimeout(() => {
-            target.selectionStart = target.selectionEnd = selectionStart + 1;
-          }, 0);
-          return;
-        }
-    }
-
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const tabSpaces = ' '.repeat(tabSize);
-      const newValue = value.substring(0, selectionStart) + tabSpaces + value.substring(target.selectionEnd);
-      updateFn(newValue);
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = selectionStart + tabSpaces.length;
-      }, 0);
-    }
-  };
 
   const updatePreview = useCallback(() => {
     let combinedDoc = '';
@@ -180,20 +143,16 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     return cleanup;
   }, [codes, selectedLanguage, updatePreview]);
 
-  const handleCodeChange = (language: FileType, value: string) => {
-    if (isTypingSoundEnabled) {
-        playKeystrokeSound();
-    }
+  const handleCodeChange = (language: FileType, value: string | undefined) => {
+    if (value === undefined) return;
     setCodes(prev => ({
       ...prev,
       frontend: { ...prev.frontend, [language]: value }
     }));
   };
 
-  const handleSingleFileChange = (value: string) => {
-    if (isTypingSoundEnabled) {
-        playKeystrokeSound();
-    }
+  const handleSingleFileChange = (value: string | undefined) => {
+    if (value === undefined) return;
     if (selectedLanguage !== 'frontend') {
       handleCodeForLanguage(selectedLanguage, value);
     }
@@ -411,10 +370,11 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
 
   const handleInsertSuggestion = () => {
     if (selectedLanguage === 'frontend') {
-      handleCodeChange(activeTab, codes.frontend[activeTab] + suggestion);
+      const currentCode = codes.frontend[activeTab];
+      handleCodeChange(activeTab, currentCode + suggestion);
     } else {
       const currentCode = codes[selectedLanguage as keyof AllCodes] as string;
-      handleCodeForLanguage(selectedLanguage, currentCode + suggestion);
+      handleSingleFileChange(currentCode + suggestion);
     }
     setSuggestion('');
   };
@@ -425,12 +385,30 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     toast({ description: "Run history cleared." });
   };
 
-  const editorTextAreaClass = cn(
-    "flex-1 font-code bg-muted/50 resize-none h-full",
-    editorFontSize === 'small' && 'text-xs',
-    editorFontSize === 'medium' && 'text-sm',
-    editorFontSize === 'large' && 'text-base'
-  );
+  const editorOptions = {
+      fontSize: editorFontSize === 'small' ? 12 : editorFontSize === 'medium' ? 14 : 16,
+      tabSize: tabSize,
+      autoClosingBrackets: autoBrackets ? 'always' : 'never',
+      minimap: { enabled: false },
+      wordWrap: 'on',
+      fontFamily: 'Source Code Pro, monospace',
+  };
+
+  const renderMonacoEditor = (language: string, value: string, onChange: (value: string | undefined) => void) => {
+    return (
+        <div className="flex-1 w-full h-full bg-muted/50 rounded-md overflow-hidden">
+            <Editor
+                height="100%"
+                language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
+                value={value}
+                theme={editorTheme}
+                onChange={onChange}
+                options={editorOptions}
+                loading={<Loader2 className="h-8 w-8 animate-spin" />}
+            />
+        </div>
+    );
+  }
 
   const renderBackendRunner = () => {
     const currentCode = codes[selectedLanguage as keyof AllCodes] as string;
@@ -444,13 +422,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                     <CardDescription>Write and run {selectedLanguage} code. The AI will simulate execution.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-4">
-                     <Textarea
-                        value={currentCode}
-                        onChange={(e) => handleCodeForLanguage(selectedLanguage, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeForLanguage(selectedLanguage, val))}
-                        className={editorTextAreaClass}
-                        placeholder={`Write your ${selectedLanguage} code here...`}
-                    />
+                     {renderMonacoEditor(selectedLanguage, currentCode, handleSingleFileChange)}
                 </CardContent>
                 <CardFooter className="flex justify-between">
                      <div className="flex gap-2">
@@ -524,7 +496,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                         )}
                     </TabsContent>
                     <TabsContent value="history" className="flex-1 bg-muted/50 rounded-b-lg overflow-y-auto m-0">
-                        <RunHistory history={runHistory} onRestore={(code) => handleCodeForLanguage(selectedLanguage, code)} onClear={handleClearHistory} />
+                        <RunHistory history={runHistory} onRestore={(code) => handleSingleFileChange(code)} onClear={handleClearHistory} />
                     </TabsContent>
                 </Tabs>
             </Card>
@@ -553,16 +525,16 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                           <TabsList><TabsTrigger value="html">index.html</TabsTrigger><TabsTrigger value="css">style.css</TabsTrigger><TabsTrigger value="javascript">script.js</TabsTrigger></TabsList>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col gap-4">
-                          <TabsContent value="html" className="flex-1 m-0"><Textarea value={codes.frontend.html} onChange={(e) => handleCodeChange('html', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('html', val))} className={editorTextAreaClass} placeholder="Write your HTML here..." /></TabsContent>
-                          <TabsContent value="css" className="flex-1 m-0"><Textarea value={codes.frontend.css} onChange={(e) => handleCodeChange('css', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('css', val))} className={editorTextAreaClass} placeholder="Write your CSS here..." /></TabsContent>
-                          <TabsContent value="javascript" className="flex-1 m-0"><Textarea value={codes.frontend.javascript} onChange={(e) => handleCodeChange('javascript', e.target.value)} onKeyDown={(e) => handleKeyDown(e, (val) => handleCodeChange('javascript', val))} className={editorTextAreaClass} placeholder="Write your JavaScript here..." /></TabsContent>
+                          <TabsContent value="html" className="flex-1 m-0">{renderMonacoEditor('html', codes.frontend.html, (val) => handleCodeChange('html', val))}</TabsContent>
+                          <TabsContent value="css" className="flex-1 m-0">{renderMonacoEditor('css', codes.frontend.css, (val) => handleCodeChange('css', val))}</TabsContent>
+                          <TabsContent value="javascript" className="flex-1 m-0">{renderMonacoEditor('javascript', codes.frontend.javascript, (val) => handleCodeChange('javascript', val))}</TabsContent>
                         </CardContent>
                       </Tabs>
                     ) : (
                       <>
                         <CardHeader><CardTitle>{selectedLanguage.toUpperCase()} Editor</CardTitle><CardDescription>Live preview for HTML-based projects.</CardDescription></CardHeader>
                         <CardContent className="flex-1 flex flex-col gap-4">
-                          <Textarea value={codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r'>]} onChange={(e) => handleSingleFileChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleSingleFileChange)} className={editorTextAreaClass} placeholder={`Write your ${selectedLanguage.toUpperCase()} here...`} />
+                          {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as Exclude<Language, 'frontend' | 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r'>], handleSingleFileChange)}
                         </CardContent>
                       </>
                     )}
@@ -721,5 +693,3 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     </div>
   );
 }
-
-    

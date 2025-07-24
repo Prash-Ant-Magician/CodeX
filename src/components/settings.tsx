@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTheme } from 'next-themes';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type EditorFontSize = 'small' | 'medium' | 'large';
+type EditorTheme = 'vs-dark' | 'light';
 
 interface SettingsContextType {
   isAiSuggestionsEnabled: boolean;
@@ -21,6 +23,10 @@ interface SettingsContextType {
   setAutoBrackets: React.Dispatch<React.SetStateAction<boolean>>;
   isTypingSoundEnabled: boolean;
   setIsTypingSoundEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  editorTheme: EditorTheme;
+  setEditorTheme: React.Dispatch<React.SetStateAction<EditorTheme>>;
+  isSyntaxHighlightingEnabled: boolean;
+  setIsSyntaxHighlightingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -31,6 +37,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [tabSize, setTabSize] = useState(2);
   const [autoBrackets, setAutoBrackets] = useState(true);
   const [isTypingSoundEnabled, setIsTypingSoundEnabled] = useState(false);
+  const [editorTheme, setEditorTheme] = useState<EditorTheme>('vs-dark');
+  const [isSyntaxHighlightingEnabled, setIsSyntaxHighlightingEnabled] = useState(true);
+
 
   return (
     <SettingsContext.Provider 
@@ -39,7 +48,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         editorFontSize, setEditorFontSize,
         tabSize, setTabSize,
         autoBrackets, setAutoBrackets,
-        isTypingSoundEnabled, setIsTypingSoundEnabled
+        isTypingSoundEnabled, setIsTypingSoundEnabled,
+        editorTheme, setEditorTheme,
+        isSyntaxHighlightingEnabled, setIsSyntaxHighlightingEnabled
       }}
     >
       {children}
@@ -62,7 +73,9 @@ export default function SettingsPage() {
     editorFontSize, setEditorFontSize,
     tabSize, setTabSize,
     autoBrackets, setAutoBrackets,
-    isTypingSoundEnabled, setIsTypingSoundEnabled
+    isTypingSoundEnabled, setIsTypingSoundEnabled,
+    editorTheme, setEditorTheme,
+    isSyntaxHighlightingEnabled, setIsSyntaxHighlightingEnabled
   } = useSettings();
 
   return (
@@ -80,8 +93,8 @@ export default function SettingsPage() {
           <div className="grid gap-4">
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <Label htmlFor="theme" className="text-base">Theme</Label>
-                <p className="text-sm text-muted-foreground">Select the theme for the application.</p>
+                <Label htmlFor="theme" className="text-base">App Theme</Label>
+                <p className="text-sm text-muted-foreground">Select the theme for the application UI.</p>
               </div>
               <RadioGroup
                 aria-label="Theme"
@@ -104,6 +117,21 @@ export default function SettingsPage() {
                 </Label>
               </RadioGroup>
             </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="editor-theme" className="text-base">Editor Theme</Label>
+                <p className="text-sm text-muted-foreground">Select the theme for the code editor.</p>
+              </div>
+               <Select value={editorTheme} onValueChange={(value) => setEditorTheme(value as EditorTheme)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vs-dark">Dark</SelectItem>
+                    <SelectItem value="light">Light</SelectItem>
+                  </SelectContent>
+                </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -114,6 +142,20 @@ export default function SettingsPage() {
           <CardDescription>Manage settings related to the code editor.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="syntax-highlighting" className="text-base">Syntax Highlighting</Label>
+                <p className="text-sm text-muted-foreground">
+                    Enable or disable language-specific color highlighting in the editor.
+                </p>
+              </div>
+               <Switch
+                id="syntax-highlighting"
+                checked={isSyntaxHighlightingEnabled}
+                onCheckedChange={setIsSyntaxHighlightingEnabled}
+                aria-label="Toggle syntax highlighting"
+              />
+            </div>
            <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <Label htmlFor="ai-suggestions" className="text-base">AI Code Suggestions</Label>
@@ -213,5 +255,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
