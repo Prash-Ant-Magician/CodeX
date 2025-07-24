@@ -15,7 +15,7 @@ import {
   SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users, PlusCircle } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
@@ -37,6 +37,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { createPost, PostData } from '@/lib/forum';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Loader2 } from 'lucide-react';
+
+const postSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters long."),
+  content: z.string().min(20, "Content must be at least 20 characters long."),
+  tags: z.string().optional(),
+});
 
 
 type ActiveView = 'editor' | 'learn' | 'challenges' | 'feedback' | 'settings' | 'qa' | 'forum';
@@ -214,17 +229,63 @@ function MainHeaderContent() {
 export function MainLayout() {
   const [activeView, setActiveView] = useState<ActiveView>('editor');
   const [codes, setCodes] = useState<AllCodes>(defaultCodes);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [prefilledPostContent, setPrefilledPostContent] = useState("");
+  const [forumRefreshKey, setForumRefreshKey] = useState(0);
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const form = useForm<z.infer<typeof postSchema>>({
+    resolver: zodResolver(postSchema),
+    defaultValues: { title: "", content: "", tags: "" },
+  });
+
+  const handleOpenCreatePostDialog = (codeToShare?: string, language?: string) => {
+    let content = "";
+    if (codeToShare) {
+        content = `I'm working on this piece of code and have a question.\n\n\`\`\`${language || ''}\n${codeToShare}\n\`\`\`\n\n`;
+    }
+    setPrefilledPostContent(content);
+    form.reset({ title: "", content: content, tags: "" });
+    setIsCreatePostOpen(true);
+  };
+
+  const handleCreatePost = async (values: z.infer<typeof postSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const postData: PostData = {
+        title: values.title,
+        content: values.content,
+        tags: values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+        authorId: user?.uid || 'anonymous',
+        authorName: user?.displayName || user?.email || "Anonymous",
+        authorPhotoURL: user?.photoURL || null
+      };
+      await createPost(postData);
+      toast({ title: "Success", description: "Your post has been created." });
+      setIsCreatePostOpen(false);
+      form.reset();
+      setForumRefreshKey(prev => prev + 1); // Trigger a refresh
+      setActiveView('forum'); // Switch to forum view after posting
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to create post." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   const renderContent = () => {
     switch (activeView) {
       case 'editor':
-        return <CodeEditor codes={codes} setCodes={setCodes} />;
+        return <CodeEditor codes={codes} setCodes={setCodes} onShare={handleOpenCreatePostDialog} />;
       case 'learn':
         return <LearningModules />;
       case 'challenges':
         return <CodingChallenges />;
       case 'forum':
-        return <CommunityForum />;
+        return <CommunityForum key={forumRefreshKey} onNewPostClick={() => handleOpenCreatePostDialog()} />;
       case 'qa':
         return <QaSessions />;
       case 'feedback':
@@ -232,7 +293,7 @@ export function MainLayout() {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <CodeEditor codes={codes} setCodes={setCodes}/>;
+        return <CodeEditor codes={codes} setCodes={setCodes} onShare={handleOpenCreatePostDialog} />;
     }
   };
 
@@ -328,6 +389,37 @@ export function MainLayout() {
           <main className="p-4 md:p-6">{renderContent()}</main>
         </SidebarInset>
         <Toaster />
+
+        {/* Global Create Post Dialog */}
+        <Dialog open={isCreatePostOpen} onOpenChange={setIsCreatePostOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+            <DialogHeader>
+                <DialogTitle>Create a new post</DialogTitle>
+                <DialogDescription>Share your thoughts with the community. Please be respectful and follow community guidelines.</DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleCreatePost)} className="space-y-4">
+                <FormField control={form.control} name="title" render={({ field }) => (
+                    <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} placeholder="Enter a descriptive title" /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="content" render={({ field }) => (
+                    <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea {...field} placeholder="What's on your mind?" rows={8} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="tags" render={({ field }) => (
+                    <FormItem><FormLabel>Tags (optional)</FormLabel><FormControl><Input {...field} placeholder="e.g., javascript, react, help" /></FormControl><FormDescription>Separate tags with a comma.</FormDescription><FormMessage /></FormItem>
+                )} />
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
+                    <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Post
+                    </Button>
+                </DialogFooter>
+                </form>
+            </Form>
+            </DialogContent>
+        </Dialog>
+
       </SidebarProvider>
     </SettingsProvider>
   );

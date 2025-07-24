@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft, Share2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,9 +36,10 @@ type FileType = 'html' | 'css' | 'javascript';
 interface CodeEditorProps {
     codes: AllCodes;
     setCodes: React.Dispatch<React.SetStateAction<AllCodes>>;
+    onShare: (code: string, language: string) => void;
 }
 
-export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
+export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps) {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('frontend');
   const [activeTab, setActiveTab] = useState<FileType>('html');
   const [previewDoc, setPreviewDoc] = useState('');
@@ -184,6 +185,19 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
     } finally {
       setIsDebugging(false);
     }
+  };
+
+  const handleShareToForum = () => {
+    let codeToShare: string;
+    let langToShare: string;
+    if (selectedLanguage === 'frontend') {
+        codeToShare = codes.frontend[activeTab];
+        langToShare = activeTab;
+    } else {
+        codeToShare = codes[selectedLanguage as Exclude<Language, 'frontend'>];
+        langToShare = selectedLanguage;
+    }
+    onShare(codeToShare, langToShare);
   };
 
   const handleSaveSnippet = async () => {
@@ -454,6 +468,16 @@ export default function CodeEditor({ codes, setCodes }: CodeEditorProps) {
                       <div className="flex flex-wrap gap-2">
                         <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
                         <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Share to Forum</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   </Card>

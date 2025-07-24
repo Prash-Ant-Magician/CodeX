@@ -4,40 +4,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, MessageSquare, Loader2 } from "lucide-react";
+import { PlusCircle, MessageSquare } from "lucide-react";
 import { useAuth } from '@/lib/firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { getPosts, createPost, Post, PostData } from '@/lib/forum';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { getPosts, Post } from '@/lib/forum';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import Link from 'next/link';
 
-const postSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters long."),
-  content: z.string().min(20, "Content must be at least 20 characters long."),
-  tags: z.string().optional(),
-});
+interface CommunityForumProps {
+    onNewPostClick: () => void;
+}
 
-export default function CommunityForum() {
-  const { user } = useAuth();
+export default function CommunityForum({ onNewPostClick }: CommunityForumProps) {
   const { toast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
-
-  const form = useForm<z.infer<typeof postSchema>>({
-    resolver: zodResolver(postSchema),
-    defaultValues: { title: "", content: "", tags: "" },
-  });
 
   const fetchPosts = useCallback(async () => {
     setIsLoading(true);
@@ -55,29 +38,6 @@ export default function CommunityForum() {
     fetchPosts();
   }, [fetchPosts]);
 
-  const handleCreatePost = async (values: z.infer<typeof postSchema>) => {
-    setIsSubmitting(true);
-    try {
-      const postData: PostData = {
-        title: values.title,
-        content: values.content,
-        tags: values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-        authorId: user?.uid || 'anonymous',
-        authorName: user?.displayName || user?.email || "Anonymous",
-        authorPhotoURL: user?.photoURL || null
-      };
-      await createPost(postData);
-      toast({ title: "Success", description: "Your post has been created." });
-      setIsCreatePostOpen(false);
-      form.reset();
-      fetchPosts(); // Refresh posts list
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to create post." });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -85,7 +45,7 @@ export default function CommunityForum() {
           <h1 className="text-3xl font-bold font-headline">Community Forum</h1>
           <p className="text-muted-foreground">Discuss topics, ask questions, and share your knowledge with the community.</p>
         </div>
-        <Button onClick={() => setIsCreatePostOpen(true)}>
+        <Button onClick={onNewPostClick}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Create Post
         </Button>
@@ -135,35 +95,6 @@ export default function CommunityForum() {
           ))
         )}
       </div>
-
-      <Dialog open={isCreatePostOpen} onOpenChange={setIsCreatePostOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-          <DialogHeader>
-            <DialogTitle>Create a new post</DialogTitle>
-            <DialogDescription>Share your thoughts with the community. Please be respectful and follow community guidelines.</DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleCreatePost)} className="space-y-4">
-              <FormField control={form.control} name="title" render={({ field }) => (
-                <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} placeholder="Enter a descriptive title" /></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={form.control} name="content" render={({ field }) => (
-                <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea {...field} placeholder="What's on your mind?" rows={8} /></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={form.control} name="tags" render={({ field }) => (
-                <FormItem><FormLabel>Tags (optional)</FormLabel><FormControl><Input {...field} placeholder="e.g., javascript, react, help" /></FormControl><FormDescription>Separate tags with a comma.</FormDescription><FormMessage /></FormItem>
-              )} />
-              <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Post
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
