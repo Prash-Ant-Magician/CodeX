@@ -557,21 +557,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
             <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
-            <div className="sm:ml-auto flex items-center gap-2 w-full sm:w-auto">
-                {isWebPreviewable && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={() => setIsPreviewVisible(!isPreviewVisible)}>
-                                    {isPreviewVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{isPreviewVisible ? 'Hide' : 'Show'} Preview</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
+            <div className="sm:ml-auto flex items-center gap-2">
                 <div className="w-full sm:w-64">
                     <Select value={selectedLanguage} onValueChange={(val) => setSelectedLanguage(val as Language)}>
                         <SelectTrigger><SelectValue placeholder="Select a language/mode" /></SelectTrigger>
@@ -589,6 +575,20 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                         </SelectContent>
                     </Select>
                 </div>
+                {isWebPreviewable && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={() => setIsPreviewVisible(!isPreviewVisible)}>
+                                    {isPreviewVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{isPreviewVisible ? 'Hide' : 'Show'} Preview</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </div>
         </div>
 
@@ -653,3 +653,5 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     </div>
   );
 }
+
+    
