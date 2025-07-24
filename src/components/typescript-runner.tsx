@@ -13,6 +13,7 @@ import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
+import { playKeystrokeSound } from '@/lib/sounds';
 
 interface CompilationResult {
     compilationOutput: string;
@@ -31,7 +32,14 @@ export default function TypescriptRunner({ code, setCode }: TypescriptRunnerProp
   const [suggestion, setSuggestion] = useState('');
   const [result, setResult] = useState<CompilationResult | null>(null);
   const { toast } = useToast();
-  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets } = useSettings();
+  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled } = useSettings();
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (isTypingSoundEnabled) {
+        playKeystrokeSound();
+    }
+    setCode(e.target.value);
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const target = e.target as HTMLTextAreaElement;
@@ -107,7 +115,7 @@ export default function TypescriptRunner({ code, setCode }: TypescriptRunnerProp
             <CardContent className="flex-1 flex flex-col gap-4">
                  <Textarea
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    onChange={handleCodeChange}
                     onKeyDown={handleKeyDown}
                     className={cn(
                         "flex-1 font-code bg-muted/50 resize-none h-full",

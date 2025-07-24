@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { type AllCodes } from './main-layout';
+import { playKeystrokeSound } from '@/lib/sounds';
 
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
 type FileType = 'html' | 'css' | 'javascript';
@@ -59,7 +60,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const [suggestion, setSuggestion] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets } = useSettings();
+  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled } = useSettings();
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
@@ -67,6 +68,10 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   ) => {
     const target = e.target as HTMLTextAreaElement;
     const { selectionStart, value } = target;
+
+    if (isTypingSoundEnabled) {
+        playKeystrokeSound();
+    }
     
     if (autoBrackets) {
         const bracketPairs: { [key: string]: string } = { '(': ')', '{': '}', '[': ']', '<': '>' };
@@ -145,6 +150,9 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   }, [codes, selectedLanguage, updatePreview]);
 
   const handleCodeChange = (language: FileType, value: string) => {
+    if (isTypingSoundEnabled) {
+        playKeystrokeSound();
+    }
     setCodes(prev => ({
       ...prev,
       frontend: { ...prev.frontend, [language]: value }
@@ -152,6 +160,9 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   };
 
   const handleSingleFileChange = (value: string) => {
+    if (isTypingSoundEnabled) {
+        playKeystrokeSound();
+    }
     if (selectedLanguage !== 'frontend' && !['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage)) {
       setCodes(prev => ({ ...prev, [selectedLanguage]: value }));
     }
