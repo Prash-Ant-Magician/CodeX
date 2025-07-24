@@ -178,7 +178,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile, side } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, side, toggleSidebar } = useSidebar()
 
     if (collapsible === "none") {
       return (
@@ -196,7 +196,6 @@ const Sidebar = React.forwardRef<
     }
 
     if (isMobile) {
-      const MobilePanelIcon = side === 'left' ? PanelRight : PanelLeft;
       return (
          <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
@@ -210,7 +209,7 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-           <Button variant="ghost" size="icon" className="absolute right-4 top-3" onClick={() => setOpenMobile(false)}><MobilePanelIcon /></Button>
+           <Button variant="ghost" size="icon" className="absolute right-4 top-3" onClick={() => toggleSidebar()}><PanelRight /></Button>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
@@ -243,12 +242,13 @@ const Sidebar = React.forwardRef<
             "duration-200 fixed inset-y-0 z-10 hidden h-svh transition-[left,right,width] ease-linear md:flex",
             "w-[--sidebar-width]",
             side === "left"
-              ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-              : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+              ? "left-0 group-data-[collapsible=offcanvas]:-left-[var(--sidebar-width)]"
+              : "right-0 group-data-[collapsible=offcanvas]:-right-[var(--sidebar-width)]",
             // Adjust the padding for floating and inset variants.
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
               : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            state === 'collapsed' && collapsible === 'offcanvas' && 'hidden',
             className
           )}
           {...props}
