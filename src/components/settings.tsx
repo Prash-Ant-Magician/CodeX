@@ -24,7 +24,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(false);
+  const [isAiSuggestionsEnabled, setIsAiSuggestionsEnabled] = useState(true);
   const [editorFontSize, setEditorFontSize] = useState<EditorFontSize>('medium');
   const [tabSize, setTabSize] = useState(2);
   const [autoBrackets, setAutoBrackets] = useState(true);
