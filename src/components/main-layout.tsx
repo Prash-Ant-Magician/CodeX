@@ -197,27 +197,31 @@ const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; set
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
             <div className="container flex h-16 items-center">
-                <Logo />
-                <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-6">
-                    {navItems.map(item => (
-                        <Link
-                            key={item.view}
-                            href="#"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                setActiveView(item.view);
-                            }}
-                            className={cn(
-                                "transition-colors hover:text-foreground/80",
-                                activeView === item.view ? "text-foreground" : "text-foreground/60"
-                            )}
-                        >
-                            {item.label}
-                        </Link>
-                    ))}
-                </nav>
+                <div className="flex items-center">
+                    <Logo />
+                    <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-6">
+                        {navItems.map(item => (
+                            <Link
+                                key={item.view}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setActiveView(item.view);
+                                }}
+                                className={cn(
+                                    "transition-colors hover:text-foreground/80",
+                                    activeView === item.view ? "text-foreground" : "text-foreground/60"
+                                )}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </nav>
+                </div>
                 <div className="flex flex-1 items-center justify-end space-x-4">
-                    <UserNav />
+                    <div className="hidden md:block">
+                        <UserNav />
+                    </div>
                     <Sheet>
                         <SheetTrigger asChild>
                             <Button variant="ghost" className="md:hidden">
@@ -242,6 +246,9 @@ const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; set
                                     </SheetClose>
                                 ))}
                             </nav>
+                            <div className="mt-6 border-t pt-6">
+                                <UserNav />
+                            </div>
                         </SheetContent>
                     </Sheet>
                 </div>
