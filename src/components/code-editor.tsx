@@ -711,32 +711,40 @@ function DebouncedEditor({ value, onChange, ...props }: Omit<React.ComponentProp
   const [internalValue, setInternalValue] = useState(value);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // When the external value changes (e.g., loading a snippet), update the internal value
   useEffect(() => {
     setInternalValue(value);
   }, [value]);
 
-  useEffect(() => {
+  const handleEditorChange = useCallback((newValue: string | undefined) => {
+    const val = newValue || '';
+    setInternalValue(val);
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    timeoutRef.current = setTimeout(() => {
-      if (value !== internalValue) {
-        onChange(internalValue);
-      }
-    }, 250); // 250ms debounce delay
 
+    timeoutRef.current = setTimeout(() => {
+      onChange(val);
+    }, 250); // 250ms debounce delay
+  }, [onChange]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [internalValue, onChange, value]);
+  }, []);
 
   return (
     <MemoizedEditor
       {...props}
       value={internalValue}
-      onChange={(v) => setInternalValue(v || '')}
+      onChange={handleEditorChange}
     />
   );
 }
+
+    
