@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronUp, Lightbulb, CornerDownLeft, Share2 } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronLeft, Lightbulb, CornerDownLeft, Share2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -514,7 +514,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     }
 
     return (
-      <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isPreviewVisible && isWebPreviewable && "md:grid-cols-2")}>
+      <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isWebPreviewable && (isPreviewVisible ? "md:grid-cols-2" : "md:grid-cols-1"))}>
           <CommonEditorCard className="h-[80vh] md:h-full">
             {selectedLanguage === 'frontend' ? (
               <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
@@ -530,7 +530,24 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
               </Tabs>
             ) : (
               <>
-                <CardHeader><CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle><CardDescription>Live preview for HTML-based projects.</CardDescription></CardHeader>
+                <CardHeader className="flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
+                        <CardDescription>Live preview for HTML-based projects.</CardDescription>
+                    </div>
+                     {isWebPreviewable && !isPreviewVisible && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}>
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Show Preview</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-4">
                   {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>], handleSingleFileChange)}
                 </CardContent>
@@ -543,17 +560,6 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
               <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Preview</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(false)}><ChevronDown className="h-4 w-4" /></Button></CardHeader>
               <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
               </Card>
-          )}
-  
-          {isWebPreviewable && !isPreviewVisible && (
-              <div className="fixed top-20 right-4 z-20">
-                   <TooltipProvider>
-                      <Tooltip>
-                          <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}><ChevronUp className="h-4 w-4" /></Button></TooltipTrigger>
-                          <TooltipContent><p>Show Preview</p></TooltipContent>
-                      </Tooltip>
-                   </TooltipProvider>
-              </div>
           )}
         </div>
       );
