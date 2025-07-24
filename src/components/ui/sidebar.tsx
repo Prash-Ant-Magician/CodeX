@@ -95,10 +95,12 @@ const SidebarProvider = React.forwardRef<
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
-      return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+      if (isMobile) {
+        setOpenMobile((prev) => !prev);
+      } else {
+        setOpen((prev) => !prev);
+      }
+    }, [isMobile, setOpen, setOpenMobile]);
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -338,8 +340,9 @@ const SidebarHeader = React.forwardRef<
       className)}
       {...props}
     >
-      {children}
-       <Button variant="ghost" className="h-full w-full absolute inset-0" onClick={toggleSidebar} aria-label="Toggle Sidebar"/>
+       <button onClick={toggleSidebar} className="flex-1 flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+        {children}
+      </button>
     </div>
   )
 })

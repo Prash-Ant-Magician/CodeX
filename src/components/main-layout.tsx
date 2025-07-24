@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createPost, PostData } from '@/lib/forum';
@@ -193,18 +193,11 @@ function UserNav() {
 }
 
 function MainHeaderContent() {
-  const { toggleSidebar, setOpen, state } = useSidebar();
-  const handleLogoClick = () => {
-    if (state === 'collapsed') {
-      setOpen(true);
-    } else {
-      toggleSidebar();
-    }
-  };
+  const { toggleSidebar } = useSidebar();
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-        <button onClick={handleLogoClick} className="flex items-center gap-2">
+        <button onClick={toggleSidebar} className="flex items-center gap-2">
           <Logo />
         </button>
       </div>
