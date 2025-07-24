@@ -165,7 +165,7 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar, side, isMobile, open } = useSidebar()
+  const { toggleSidebar, side } = useSidebar()
   const PanelIcon = side === 'left' ? PanelLeft : PanelRight;
 
   return (
@@ -174,7 +174,7 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-7 w-7", !open && "hidden", isMobile && 'hidden', className)}
+      className={cn("h-7 w-7", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -327,7 +327,8 @@ SidebarInput.displayName = "SidebarInput"
 const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
->(({ className, ...props }, ref) => {
+>(({ className, children, ...props }, ref) => {
+  const { toggleSidebar } = useSidebar();
   return (
     <div
       ref={ref}
@@ -336,7 +337,10 @@ const SidebarHeader = React.forwardRef<
        "group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center",
       className)}
       {...props}
-    />
+    >
+      {children}
+       <Button variant="ghost" className="h-full w-full absolute inset-0" onClick={toggleSidebar} aria-label="Toggle Sidebar"/>
+    </div>
   )
 })
 SidebarHeader.displayName = "SidebarHeader"
