@@ -197,9 +197,10 @@ const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; set
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
             <div className="container flex h-16 items-center">
-                <div className="flex items-center">
-                    <Logo />
-                    <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-6">
+                <Logo />
+                
+                <div className="flex flex-1 items-center justify-end space-x-4">
+                    <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
                         {navItems.map(item => (
                             <Link
                                 key={item.view}
@@ -217,8 +218,6 @@ const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; set
                             </Link>
                         ))}
                     </nav>
-                </div>
-                <div className="flex flex-1 items-center justify-end space-x-4">
                     <div className="hidden md:block">
                         <UserNav />
                     </div>
