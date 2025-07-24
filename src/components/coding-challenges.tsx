@@ -598,7 +598,7 @@ export default function CodingChallenges() {
         const success = activeChallenge.test(code);
         if (success) {
           setTestResult({ status: 'success', message: 'All tests passed! Great job!' });
-          setEmojiBlast('😊');
+          setEmojiBlast('🎉');
           playSuccessSound();
           
           if (!completedChallenges.has(activeChallenge.id)) {
