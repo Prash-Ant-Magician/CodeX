@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users, PlusCircle } from 'lucide-react';
+import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users, PlusCircle, PanelLeft } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import CodeEditor from '@/components/code-editor';
 import LearningModules from '@/components/learning-modules';
@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createPost, PostData } from '@/lib/forum';
@@ -193,10 +193,13 @@ function UserNav() {
 }
 
 function MainHeaderContent() {
+  const { toggleSidebar } = useSidebar();
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-         <Logo />
+        <button onClick={toggleSidebar} className="flex items-center gap-2">
+          <Logo />
+        </button>
       </div>
       <div className="flex flex-1 items-center justify-end gap-4">
           <UserNav />
@@ -405,3 +408,5 @@ export function MainLayout() {
     </SettingsProvider>
   );
 }
+
+    
