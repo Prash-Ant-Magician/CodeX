@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, ChevronDown, ChevronLeft, Lightbulb, CornerDownLeft, Share2 } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -470,10 +470,10 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
       </Card>
   );
 
-  const renderEditor = () => {
-    const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
-    const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
+  const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
+  const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
 
+  const renderEditor = () => {
     if (isBackendLang) {
         return (
             <div className="flex flex-col gap-4 h-[calc(100vh-10rem)]">
@@ -530,23 +530,11 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
               </Tabs>
             ) : (
               <>
-                <CardHeader className="flex-row items-center justify-between">
+                <CardHeader>
                     <div>
                         <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
                         <CardDescription>Live preview for HTML-based projects.</CardDescription>
                     </div>
-                     {isWebPreviewable && !isPreviewVisible && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(true)}>
-                                        <ChevronLeft className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Show Preview</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-4">
                   {renderMonacoEditor(selectedLanguage, codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>], handleSingleFileChange)}
@@ -557,7 +545,7 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
           
           {isWebPreviewable && isPreviewVisible && (
               <Card className="flex flex-col h-[80vh] md:h-full">
-              <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Preview</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsPreviewVisible(false)}><ChevronDown className="h-4 w-4" /></Button></CardHeader>
+              <CardHeader><CardTitle>Preview</CardTitle></CardHeader>
               <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
               </Card>
           )}
@@ -569,22 +557,38 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
     <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
             <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
-            <div className="sm:ml-auto w-full sm:w-64">
-                <Select value={selectedLanguage} onValueChange={(val) => setSelectedLanguage(val as Language)}>
-                    <SelectTrigger><SelectValue placeholder="Select a language/mode" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="frontend">Frontend (HTML/CSS/JS)</SelectItem>
-                        <SelectItem value="html">HTML</SelectItem>
-                        <SelectItem value="css">CSS</SelectItem>
-                        <SelectItem value="javascript">JavaScript</SelectItem>
-                        <SelectItem value="typescript">TypeScript</SelectItem>
-                        <SelectItem value="python">Python</SelectItem>
-                        <SelectItem value="java">Java</SelectItem>
-                        <SelectItem value="c">C Language</SelectItem>
-                        <SelectItem value="ruby">Ruby</SelectItem>
-                        <SelectItem value="r">R</SelectItem>
-                    </SelectContent>
-                </Select>
+            <div className="sm:ml-auto flex items-center gap-2 w-full sm:w-auto">
+                {isWebPreviewable && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={() => setIsPreviewVisible(!isPreviewVisible)}>
+                                    {isPreviewVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{isPreviewVisible ? 'Hide' : 'Show'} Preview</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+                <div className="w-full sm:w-64">
+                    <Select value={selectedLanguage} onValueChange={(val) => setSelectedLanguage(val as Language)}>
+                        <SelectTrigger><SelectValue placeholder="Select a language/mode" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="frontend">Frontend (HTML/CSS/JS)</SelectItem>
+                            <SelectItem value="html">HTML</SelectItem>
+                            <SelectItem value="css">CSS</SelectItem>
+                            <SelectItem value="javascript">JavaScript</SelectItem>
+                            <SelectItem value="typescript">TypeScript</SelectItem>
+                            <SelectItem value="python">Python</SelectItem>
+                            <SelectItem value="java">Java</SelectItem>
+                            <SelectItem value="c">C Language</SelectItem>
+                            <SelectItem value="ruby">Ruby</SelectItem>
+                            <SelectItem value="r">R</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </div>
 
