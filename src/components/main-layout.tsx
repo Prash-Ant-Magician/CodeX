@@ -202,11 +202,11 @@ function SidebarHeaderContent() {
 }
 
 function MainHeaderContent() {
-  const { isMobile, state } = useSidebar();
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-         {isMobile || state === 'collapsed' ? <Logo /> : <SidebarTrigger className="sm:hidden" />}
+         <SidebarTrigger className="md:hidden" />
+         <h1 className="text-xl font-bold text-foreground font-headline">CodeLeap</h1>
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-4">
@@ -290,7 +290,7 @@ export function MainLayout() {
   return (
     <SettingsProvider>
       <SidebarProvider>
-        <Sidebar collapsible="icon">
+        <Sidebar collapsible="offcanvas">
           <SidebarHeaderContent />
           <SidebarContent>
             <SidebarMenu>

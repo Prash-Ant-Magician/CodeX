@@ -15,6 +15,7 @@ export function Logo({ className }: { className?: string }) {
       onClick={toggleSidebar}
       className={cn(
         "flex items-center gap-2 justify-start w-full h-auto p-0 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent",
+        "group-data-[collapsible=icon]/sidebar-wrapper:justify-center",
         className
       )}
       aria-label="Toggle Sidebar"
