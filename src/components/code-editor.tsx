@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -484,17 +484,63 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
   const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
   const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
 
-  const editorContent = useMemo(() => {
-    if (isBackendLang) {
-        return (
-            <div className="flex flex-col gap-4 h-[calc(100vh-10rem)]">
-                <CommonEditorCard className="flex-1">
+  const currentCode = useMemo(() => {
+    if (selectedLanguage === 'frontend') {
+      return codes.frontend[activeTab];
+    }
+    return codes[selectedLanguage as Exclude<Language, 'frontend'>];
+  }, [codes, selectedLanguage, activeTab]);
+
+  const editorContent = (
+      <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isWebPreviewable && (isPreviewVisible ? "md:grid-cols-2" : "md:grid-cols-1"))}>
+          <CommonEditorCard className="h-[80vh] md:h-full">
+            {selectedLanguage === 'frontend' ? (
+              <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
+                <CardHeader className="flex-row items-center justify-between">
+                    <div className="flex flex-col gap-1.5"><CardTitle>Editor</CardTitle><CardDescription>Multi-file editor for web projects.</CardDescription></div>
+                  <TabsList><TabsTrigger value="html">index.html</TabsTrigger><TabsTrigger value="css">style.css</TabsTrigger><TabsTrigger value="javascript">script.js</TabsTrigger></TabsList>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-4">
+                  <TabsContent value="html" className="flex-1 m-0">
+                    <DebouncedEditor
+                        language="html"
+                        value={codes.frontend.html}
+                        onChange={(val) => handleCodeChange('html', val)}
+                        options={editorOptions}
+                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                        theme={editorTheme}
+                    />
+                  </TabsContent>
+                  <TabsContent value="css" className="flex-1 m-0">
+                    <DebouncedEditor
+                        language="css"
+                        value={codes.frontend.css}
+                        onChange={(val) => handleCodeChange('css', val)}
+                        options={editorOptions}
+                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                        theme={editorTheme}
+                    />
+                  </TabsContent>
+                  <TabsContent value="javascript" className="flex-1 m-0">
+                    <DebouncedEditor
+                        language="javascript"
+                        value={codes.frontend.javascript}
+                        onChange={(val) => handleCodeChange('javascript', val)}
+                        options={editorOptions}
+                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                        theme={editorTheme}
+                    />
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
+            ) : isBackendLang ? (
+                <div className="flex flex-col gap-4 h-full">
                     <CardHeader>
                         <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
                         <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col gap-4">
-                        <MemoizedEditor
+                        <DebouncedEditor
                             language={selectedLanguage}
                             value={codes[selectedLanguage as BackendLanguage]}
                             onChange={handleSingleFileChange}
@@ -503,9 +549,38 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                             theme={editorTheme}
                         />
                     </CardContent>
-                </CommonEditorCard>
+                </div>
+            ) : (
+              <>
+                <CardHeader>
+                    <div>
+                        <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
+                        <CardDescription>Live preview for HTML-based projects.</CardDescription>
+                    </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-4">
+                  <DebouncedEditor
+                    language={selectedLanguage}
+                    value={codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>]}
+                    onChange={handleSingleFileChange}
+                    options={editorOptions}
+                    isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+                    theme={editorTheme}
+                  />
+                </CardContent>
+              </>
+            )}
+          </CommonEditorCard>
+          
+          {isWebPreviewable && isPreviewVisible && (
+              <Card className="flex flex-col h-[80vh] md:h-full">
+              <CardHeader><CardTitle>Preview</CardTitle></CardHeader>
+              <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
+              </Card>
+          )}
 
-                <Card className="flex-1 flex flex-col">
+          {isBackendLang && (
+              <Card className="flex-1 flex flex-col h-[80vh] md:h-full">
                   <Tabs defaultValue="output" className="flex-1 flex flex-col">
                       <CardHeader className="flex-row justify-between items-center">
                           <CardTitle>Result</CardTitle>
@@ -527,101 +602,9 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
                       </CardContent>
                   </Tabs>
                 </Card>
-            </div>
-        )
-    }
-
-    return (
-      <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isWebPreviewable && (isPreviewVisible ? "md:grid-cols-2" : "md:grid-cols-1"))}>
-          <CommonEditorCard className="h-[80vh] md:h-full">
-            {selectedLanguage === 'frontend' ? (
-              <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(val) => setActiveTab(val as FileType)}>
-                <CardHeader className="flex-row items-center justify-between">
-                    <div className="flex flex-col gap-1.5"><CardTitle>Editor</CardTitle><CardDescription>Multi-file editor for web projects.</CardDescription></div>
-                  <TabsList><TabsTrigger value="html">index.html</TabsTrigger><TabsTrigger value="css">style.css</TabsTrigger><TabsTrigger value="javascript">script.js</TabsTrigger></TabsList>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col gap-4">
-                  <TabsContent value="html" className="flex-1 m-0">
-                    <MemoizedEditor
-                        language="html"
-                        value={codes.frontend.html}
-                        onChange={(val) => handleCodeChange('html', val)}
-                        options={editorOptions}
-                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
-                        theme={editorTheme}
-                    />
-                  </TabsContent>
-                  <TabsContent value="css" className="flex-1 m-0">
-                    <MemoizedEditor
-                        language="css"
-                        value={codes.frontend.css}
-                        onChange={(val) => handleCodeChange('css', val)}
-                        options={editorOptions}
-                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
-                        theme={editorTheme}
-                    />
-                  </TabsContent>
-                  <TabsContent value="javascript" className="flex-1 m-0">
-                    <MemoizedEditor
-                        language="javascript"
-                        value={codes.frontend.javascript}
-                        onChange={(val) => handleCodeChange('javascript', val)}
-                        options={editorOptions}
-                        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
-                        theme={editorTheme}
-                    />
-                  </TabsContent>
-                </CardContent>
-              </Tabs>
-            ) : (
-              <>
-                <CardHeader>
-                    <div>
-                        <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
-                        <CardDescription>Live preview for HTML-based projects.</CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col gap-4">
-                  <MemoizedEditor
-                    language={selectedLanguage}
-                    value={codes[selectedLanguage as Exclude<Language, 'frontend' | BackendLanguage>]}
-                    onChange={handleSingleFileChange}
-                    options={editorOptions}
-                    isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
-                    theme={editorTheme}
-                  />
-                </CardContent>
-              </>
-            )}
-          </CommonEditorCard>
-          
-          {isWebPreviewable && isPreviewVisible && (
-              <Card className="flex flex-col h-[80vh] md:h-full">
-              <CardHeader><CardTitle>Preview</CardTitle></CardHeader>
-              <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
-              </Card>
           )}
         </div>
       );
-  }, [
-      isBackendLang, 
-      selectedLanguage, 
-      codes, 
-      handleSingleFileChange, 
-      handleCodeChange, 
-      isWebPreviewable, 
-      isPreviewVisible, 
-      previewDoc, 
-      activeTab, 
-      isBackendRunning, 
-      backendError, 
-      backendOutput, 
-      history, 
-      handleRestoreFromHistory,
-      editorOptions,
-      isSyntaxHighlightingEnabled,
-      editorTheme
-  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -721,5 +704,39 @@ export default function CodeEditor({ codes, setCodes, onShare }: CodeEditorProps
           </AlertDialogContent>
         </AlertDialog>
     </div>
+  );
+}
+
+function DebouncedEditor({ value, onChange, ...props }: Omit<React.ComponentProps<typeof MemoizedEditor>, 'value' | 'onChange'> & { value: string; onChange: (value: string) => void; }) {
+  const [internalValue, setInternalValue] = useState(value);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setInternalValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      if (value !== internalValue) {
+        onChange(internalValue);
+      }
+    }, 250); // 250ms debounce delay
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [internalValue, onChange, value]);
+
+  return (
+    <MemoizedEditor
+      {...props}
+      value={internalValue}
+      onChange={(v) => setInternalValue(v || '')}
+    />
   );
 }
