@@ -205,7 +205,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile, side, toggleSidebar } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, side } = useSidebar()
 
     if (collapsible === "none") {
       return (
@@ -236,7 +236,6 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-           <Button variant="ghost" size="icon" className="absolute right-4 top-3" onClick={() => toggleSidebar()}><PanelRight /></Button>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
@@ -285,7 +284,6 @@ const Sidebar = React.forwardRef<
             className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
             {children}
-             <SidebarTrigger className="absolute right-2 top-2" />
           </div>
         </div>
       </div>
