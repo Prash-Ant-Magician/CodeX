@@ -12,7 +12,6 @@ import {
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
-  SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Code, BookOpen, Trophy, MessageSquare, LogOut, Settings, Mic, Users, PlusCircle } from 'lucide-react';
@@ -197,7 +196,6 @@ function SidebarHeaderContent() {
     return (
         <SidebarHeader>
             <Logo />
-            <SidebarTrigger />
         </SidebarHeader>
     );
 }
