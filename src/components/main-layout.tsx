@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as FormDescriptionComponent } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createPost, PostData } from '@/lib/forum';
@@ -192,14 +192,6 @@ function UserNav() {
   );
 }
 
-function SidebarHeaderContent() {
-    return (
-        <SidebarHeader>
-            <Logo />
-        </SidebarHeader>
-    );
-}
-
 function MainHeaderContent() {
   return (
      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
@@ -288,7 +280,9 @@ export function MainLayout() {
     <SettingsProvider>
       <SidebarProvider>
         <Sidebar collapsible="icon">
-          <SidebarHeaderContent />
+          <SidebarHeader>
+            <Logo />
+          </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -393,7 +387,7 @@ export function MainLayout() {
                     <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea {...field} placeholder="What's on your mind?" rows={8} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="tags" render={({ field }) => (
-                    <FormItem><FormLabel>Tags (optional)</FormLabel><FormControl><Input {...field} placeholder="e.g., javascript, react, help" /></FormControl><FormDescriptionComponent>Separate tags with a comma.</FormDescriptionComponent><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Tags (optional)</FormLabel><FormControl><Input {...field} placeholder="e.g., javascript, react, help" /></FormControl><FormDescription>Separate tags with a comma.</FormDescription><FormMessage /></FormItem>
                 )} />
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
