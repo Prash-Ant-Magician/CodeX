@@ -7,21 +7,17 @@ import { cn } from '@/lib/utils';
 import { useSidebar } from './ui/sidebar';
 
 export function Logo({ className }: { className?: string }) {
-  const { toggleSidebar } = useSidebar();
 
   return (
-    <Button 
-      variant="ghost" 
-      onClick={toggleSidebar}
+    <div
       className={cn(
-        "flex items-center gap-2 justify-start w-full h-auto p-0 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent",
+        "flex items-center gap-2 justify-start",
         "group-data-[collapsible=icon]/sidebar-wrapper:justify-center",
         className
       )}
-      aria-label="Toggle Sidebar"
     >
       <Braces className="h-7 w-7 text-primary shrink-0" />
       <h1 className="text-xl font-bold text-foreground font-headline group-data-[collapsible=icon]/sidebar-wrapper:hidden">CodeLeap</h1>
-    </Button>
+    </div>
   );
 }
