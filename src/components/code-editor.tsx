@@ -112,7 +112,7 @@ const DebouncedEditor = React.memo(
 );
 
 
-export default function CodeEditor({ 
+const CodeEditor = React.memo(function CodeEditor({ 
     codes,
     selectedLanguage,
     setSelectedLanguage,
@@ -646,4 +646,6 @@ export default function CodeEditor({
         </AlertDialog>
     </div>
   );
-}
+});
+
+export default CodeEditor;

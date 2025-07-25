@@ -313,11 +313,11 @@ export function MainLayout() {
     }
   };
 
-  const handleCodeForLanguage = useCallback((lang: Language, newCode: string) => {
+  const onCodeChange = useCallback((lang: Language, newCode: string) => {
     setCodes(prev => ({...prev, [lang]: newCode}));
   }, []);
 
-  const handleFrontendCodeChange = useCallback((file: FileType, newCode: string) => {
+  const onFrontendCodeChange = useCallback((file: FileType, newCode: string) => {
     setCodes(prev => ({
       ...prev,
       frontend: { ...prev.frontend, [file]: newCode }
@@ -338,7 +338,7 @@ export function MainLayout() {
     }
   }, [user, toast]);
   
-  const handleSaveSnippet = async (name: string, lang: Language) => {
+  const onSaveSnippet = useCallback(async (name: string, lang: Language) => {
       let codeToSave;
       if (lang === 'frontend') {
         codeToSave = JSON.stringify(codes.frontend);
@@ -357,30 +357,32 @@ export function MainLayout() {
       } catch (error) {
          toast({ variant: 'destructive', title: 'Error', description: 'Could not save snippet.' });
       }
-  };
+  }, [user, codes, toast, fetchSnippets]);
 
-  const handleLoadSnippet = (snippet: Snippet) => {
+  const onLoadSnippet = useCallback((snippet: Snippet) => {
     try {
       const lang = snippet.language as Language;
       setSelectedLanguage(lang);
       if (lang === 'frontend') {
         const loadedCodes = JSON.parse(snippet.code);
         if (loadedCodes.html !== undefined && loadedCodes.css !== undefined && loadedCodes.javascript !== undefined) {
-          setCodes(prev => ({ ...prev, frontend: loadedCodes }));
+          onFrontendCodeChange('html', loadedCodes.html);
+          onFrontendCodeChange('css', loadedCodes.css);
+          onFrontendCodeChange('javascript', loadedCodes.javascript);
         } else {
           throw new Error("Invalid project format.");
         }
       } else {
-        setCodes(prev => ({ ...prev, [lang]: snippet.code }));
+        onCodeChange(lang, snippet.code);
       }
       toast({ title: 'Snippet Loaded', description: `"${snippet.name}" has been loaded into the editor.` });
     } catch (e) {
         console.error("Failed to parse snippet:", e);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not load snippet. The data might be corrupted.' });
     }
-  };
+  }, [toast, onCodeChange, onFrontendCodeChange]);
   
-  const handleDeleteSnippet = async (id: string) => {
+  const onDeleteSnippet = useCallback(async (id: string) => {
     try {
         if (user) {
             await deleteSnippet(user.uid, id);
@@ -392,7 +394,7 @@ export function MainLayout() {
     } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not delete snippet.' });
     }
-  }
+  }, [user, toast, fetchSnippets]);
 
 
   const renderContent = () => {
@@ -402,14 +404,14 @@ export function MainLayout() {
             codes={codes}
             selectedLanguage={selectedLanguage}
             setSelectedLanguage={setSelectedLanguage}
-            onFrontendCodeChange={handleFrontendCodeChange}
-            onCodeChange={handleCodeForLanguage}
+            onFrontendCodeChange={onFrontendCodeChange}
+            onCodeChange={onCodeChange}
             onShare={handleOpenCreatePostDialog}
             snippets={snippets}
             fetchSnippets={fetchSnippets}
-            onSaveSnippet={handleSaveSnippet}
-            onLoadSnippet={handleLoadSnippet}
-            onDeleteSnippet={handleDeleteSnippet}
+            onSaveSnippet={onSaveSnippet}
+            onLoadSnippet={onLoadSnippet}
+            onDeleteSnippet={onDeleteSnippet}
           />;
       case 'learn':
         return <LearningModules />;
@@ -428,14 +430,14 @@ export function MainLayout() {
             codes={codes}
             selectedLanguage={selectedLanguage}
             setSelectedLanguage={setSelectedLanguage}
-            onFrontendCodeChange={handleFrontendCodeChange}
-            onCodeChange={handleCodeForLanguage}
+            onFrontendCodeChange={onFrontendCodeChange}
+            onCodeChange={onCodeChange}
             onShare={handleOpenCreatePostDialog}
             snippets={snippets}
             fetchSnippets={fetchSnippets}
-            onSaveSnippet={handleSaveSnippet}
-            onLoadSnippet={handleLoadSnippet}
-            onDeleteSnippet={handleDeleteSnippet}
+            onSaveSnippet={onSaveSnippet}
+            onLoadSnippet={onLoadSnippet}
+            onDeleteSnippet={onDeleteSnippet}
           />;
     }
   };
@@ -478,4 +480,3 @@ export function MainLayout() {
     </SettingsProvider>
   );
 }
-
