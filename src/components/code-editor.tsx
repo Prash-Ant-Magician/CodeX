@@ -108,6 +108,18 @@ const DebouncedEditor = React.memo(
         />
       </div>
     );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function to prevent unnecessary re-renders
+    return (
+      prevProps.value === nextProps.value &&
+      prevProps.language === nextProps.language &&
+      prevProps.theme === nextProps.theme &&
+      prevProps.isSyntaxHighlightingEnabled === nextProps.isSyntaxHighlightingEnabled &&
+      prevProps.options.fontSize === nextProps.options.fontSize &&
+      prevProps.options.tabSize === nextProps.options.tabSize &&
+      prevProps.options.autoClosingBrackets === nextProps.options.autoClosingBrackets
+    );
   }
 );
 
