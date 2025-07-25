@@ -120,14 +120,12 @@ StableEditorWrapper.displayName = 'StableEditorWrapper';
 const SmoothPreview = ({ html }: { html: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // set content once the frame is mounted
   useEffect(() => {
-    const doc = iframeRef.current?.contentDocument;
-    if (!doc) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
 
-    // write new content without navigation
-    doc.open();
-    doc.write(html);
-    doc.close();
+    iframe.srcdoc = html;        // fast, no navigation
   }, [html]);
 
   return (
