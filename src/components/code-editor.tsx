@@ -115,6 +115,32 @@ const StableEditorWrapper = React.memo(
 );
 StableEditorWrapper.displayName = 'StableEditorWrapper';
 
+
+// --- NEW: zero-black-flash preview component ---
+const SmoothPreview = ({ html }: { html: string }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+
+    // write new content without navigation
+    doc.open();
+    doc.write(html);
+    doc.close();
+  }, [html]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      title="Preview"
+      sandbox="allow-scripts"
+      className="w-full h-full border-0 bg-white"
+    />
+  );
+};
+
+
 /* ---------- main component ---------- */
 export default function CodeEditor(props: CodeEditorProps) {
   const {
@@ -470,19 +496,14 @@ export default function CodeEditor(props: CodeEditorProps) {
           </CardFooter>
         </Card>
 
-        {/* ---- instant preview via srcDoc ---- */}
+        {/* ---- instant preview ---- */}
         {isWebPreviewable && isPreviewVisible && (
           <Card className="flex flex-col h-[80vh] md:h-full">
             <CardHeader>
               <CardTitle>Preview</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
-              <iframe
-                srcDoc={previewSrcDoc}
-                title="Preview"
-                sandbox="allow-scripts"
-                className="w-full h-full border-0 bg-white"
-              />
+               <SmoothPreview html={previewSrcDoc} />
             </CardContent>
           </Card>
         )}
