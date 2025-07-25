@@ -496,14 +496,13 @@ export default function CodeEditor(props: CodeEditorProps) {
           </CardFooter>
         </Card>
 
-        {/* ---- instant preview ---- */}
         {isWebPreviewable && isPreviewVisible && (
           <Card className="flex flex-col h-[80vh] md:h-full">
             <CardHeader>
               <CardTitle>Preview</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
-               <SmoothPreview html={previewSrcDoc} />
+              <SmoothPreview html={previewSrcDoc} />
             </CardContent>
           </Card>
         )}
