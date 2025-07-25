@@ -267,6 +267,20 @@ export default function CodeEditor({
     }
   }, [codes, selectedLanguage]);
 
+  const debouncePreview = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedUpdatePreview = useCallback(() => {
+    if (debouncePreview.current) clearTimeout(debouncePreview.current);
+    debouncePreview.current = setTimeout(updatePreview, 700); // 700 ms quiet period
+  }, [updatePreview]);
+
+  useEffect(() => {
+    debouncedUpdatePreview();
+    return () => {
+      if (debouncePreview.current) clearTimeout(debouncePreview.current);
+    };
+  }, [codes, selectedLanguage, debouncedUpdatePreview]);
+
 
   useEffect(() => {
     if (isLoadOpen) {
