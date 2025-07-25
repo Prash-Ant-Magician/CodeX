@@ -533,7 +533,7 @@ export default function CodeEditor(props: CodeEditorProps) {
       return (
         <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
           {/* Editor for Backend */}
-          <div className="h-2/3">
+          <div className="flex-[2_1_0%] min-h-0">
              <Card className="flex flex-col h-full">
                 <CardHeader>
                   <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
@@ -551,8 +551,8 @@ export default function CodeEditor(props: CodeEditorProps) {
           </div>
         
           {/* Result for Backend */}
-           <div className="h-1/3">
-            <Card className="flex-1 flex flex-col h-full">
+           <div className="flex-1">
+            <Card className="flex flex-col h-full">
               <Tabs defaultValue="output" className="flex-1 flex flex-col">
                 <CardHeader className="flex-row justify-between items-center">
                   <CardTitle>Result</CardTitle>
