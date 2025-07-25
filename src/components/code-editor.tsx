@@ -5,7 +5,7 @@ import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth';
@@ -15,7 +15,7 @@ import { suggestCode } from '@/ai/flows/suggest-code';
 import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
@@ -152,17 +152,12 @@ export default function CodeEditor(props: CodeEditorProps) {
   const [backendError, setBackendError] = useState('');
   const [isBackendRunning, setIsBackendRunning] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   /* ---------- hooks ---------- */
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
-  
-  useEffect(() => {
-    if (isLoadOpen) {
-      fetchSnippets();
-    }
-  }, [isLoadOpen, fetchSnippets]);
 
   /* ---------- helpers ---------- */
   const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
@@ -181,8 +176,6 @@ export default function CodeEditor(props: CodeEditorProps) {
   );
 
   /* ---------- instant, smooth preview ---------- */
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
   const updatePreview = useCallback(() => {
     if (!isWebPreviewable) return;
 
@@ -215,9 +208,8 @@ export default function CodeEditor(props: CodeEditorProps) {
   useEffect(() => {
     if (!isWebPreviewable) return;
     updatePreview();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [codes, selectedLanguage, isWebPreviewable]);
-
 
   /* ---------- backend run ---------- */
   const handleRunBackend = useCallback(
@@ -259,8 +251,6 @@ export default function CodeEditor(props: CodeEditorProps) {
   const handleRun = () => {
     if (isBackendLang) {
       handleRunBackend(selectedLanguage as BackendLanguage);
-    } else {
-      updatePreview();
     }
   };
 
@@ -593,7 +583,7 @@ export default function CodeEditor(props: CodeEditorProps) {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="text-muted-foreground opacity-0 group-hover:opacity-100" onClick={() => handleDeleteFlow(s.id)} disabled={isActionLoading}>
-                           {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
+                            {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Delete Snippet</TooltipContent>
@@ -630,11 +620,11 @@ export default function CodeEditor(props: CodeEditorProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>AI Debugging Assistant</AlertDialogTitle>
-            <DialogDescription asChild>
-                <ScrollArea className="h-72 pr-4">
-                    <pre className="whitespace-pre-wrap text-sm font-sans">{debugResult}</pre>
-                </ScrollArea>
-            </DialogDescription>
+            <AlertDialogDescription asChild>
+              <ScrollArea className="h-72 pr-4">
+                <pre className="whitespace-pre-wrap font-sans text-sm">{debugResult}</pre>
+              </ScrollArea>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction>Got it</AlertDialogAction>
