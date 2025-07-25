@@ -29,7 +29,6 @@ import { runRCode } from '@/ai/flows/run-r';
 import { runRubyCode } from '@/ai/flows/run-ruby';
 import RunHistory, { type HistoryEntry } from './run-history';
 import { Snippet } from '@/lib/snippets';
-import { playKeystrokeSound } from '@/lib/sounds';
 
 /* ---------- types ---------- */
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
@@ -70,8 +69,8 @@ function useEditorCursor() {
   return { onMount, beforeUpdate };
 }
 
-/* ---------- stable editor ---------- */
-const StableEditorWrapper = React.memo(
+/* ---------- debounced editor ---------- */
+const StableEditor = React.memo(
   ({
     language,
     value,
@@ -88,16 +87,10 @@ const StableEditorWrapper = React.memo(
     theme: string;
   }) => {
     const cursor = useEditorCursor();
-    const { isTypingSoundEnabled } = useSettings();
 
     useEffect(() => {
       cursor.beforeUpdate();
     }, [value, cursor]);
-
-    const handleCodeChange = (v: string | undefined) => {
-      if (isTypingSoundEnabled) playKeystrokeSound();
-      onChange(v);
-    };
 
     return (
       <Editor
@@ -105,7 +98,7 @@ const StableEditorWrapper = React.memo(
         language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
         value={value}
         theme={theme}
-        onChange={handleCodeChange}
+        onChange={onChange}
         options={options}
         onMount={cursor.onMount}
         loading={<Loader2 className="h-8 w-8 animate-spin" />}
@@ -113,7 +106,7 @@ const StableEditorWrapper = React.memo(
     );
   },
 );
-StableEditorWrapper.displayName = 'StableEditorWrapper';
+StableEditor.displayName = 'StableEditor';
 
 // --- NEW: zero-black-flash preview component ---
 const SmoothPreview = ({ html }: { html: string }) => {
@@ -193,7 +186,7 @@ export default function CodeEditor(props: CodeEditorProps) {
     [editorFontSize, tabSize, autoBrackets],
   );
 
-  /* ---------- instant preview (srcDoc) ---------- */
+    /* ---------- instant preview (srcDoc) ---------- */
   const previewSrcDoc = useMemo(() => {
     if (!isWebPreviewable) return '';
 
@@ -417,13 +410,13 @@ export default function CodeEditor(props: CodeEditorProps) {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col gap-4">
                 <TabsContent value="html" className="flex-1 m-0">
-                  <StableEditorWrapper language="html" value={codes.frontend.html} onChange={(v) => onFrontendCodeChange('html', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                  <StableEditor language="html" value={codes.frontend.html} onChange={(v) => onFrontendCodeChange('html', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
                 </TabsContent>
                 <TabsContent value="css" className="flex-1 m-0">
-                  <StableEditorWrapper language="css" value={codes.frontend.css} onChange={(v) => onFrontendCodeChange('css', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                  <StableEditor language="css" value={codes.frontend.css} onChange={(v) => onFrontendCodeChange('css', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
                 </TabsContent>
                 <TabsContent value="javascript" className="flex-1 m-0">
-                  <StableEditorWrapper language="javascript" value={codes.frontend.javascript} onChange={(v) => onFrontendCodeChange('javascript', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                  <StableEditor language="javascript" value={codes.frontend.javascript} onChange={(v) => onFrontendCodeChange('javascript', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
                 </TabsContent>
               </CardContent>
             </Tabs>
@@ -434,7 +427,7 @@ export default function CodeEditor(props: CodeEditorProps) {
                 <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
-                <StableEditorWrapper language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
               </CardContent>
             </div>
           )}
@@ -492,6 +485,7 @@ export default function CodeEditor(props: CodeEditorProps) {
           </CardFooter>
         </Card>
 
+        {/* ---- preview / result ---- */}
         {isWebPreviewable && isPreviewVisible && (
           <Card className="flex flex-col h-[80vh] md:h-full">
             <CardHeader>
