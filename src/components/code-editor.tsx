@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
@@ -12,7 +13,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff, Maximize, Minimize } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff, Maximize, Minimize, Laptop, Tablet, Smartphone } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,6 +35,7 @@ import { Snippet } from '@/lib/snippets';
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
 type FileType = 'html' | 'css' | 'javascript';
 type BackendLanguage = 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r';
+type Viewport = 'desktop' | 'tablet' | 'mobile';
 
 interface CodeEditorProps {
   codes: AllCodes;
@@ -161,6 +163,7 @@ export default function CodeEditor(props: CodeEditorProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
   const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
+  const [viewport, setViewport] = useState<Viewport>('desktop');
 
   const [backendOutput, setBackendOutput] = useState('');
   const [backendError, setBackendError] = useState('');
@@ -505,14 +508,27 @@ export default function CodeEditor(props: CodeEditorProps) {
                 ? "fixed inset-0 z-50 h-screen w-screen rounded-none" 
                 : "h-[80vh] md:h-full"
             )}>
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle>Preview</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setIsPreviewFullscreen(!isPreviewFullscreen)}>
-                {isPreviewFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-              </Button>
+            <CardHeader className="flex flex-row items-center justify-between space-x-2">
+                <div className="flex items-center gap-2">
+                  <CardTitle>Preview</CardTitle>
+                  <div className="flex items-center gap-1 rounded-md bg-muted p-1">
+                      <Button variant={viewport === 'mobile' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('mobile')}><Smartphone className="h-4 w-4" /></Button>
+                      <Button variant={viewport === 'tablet' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('tablet')}><Tablet className="h-4 w-4" /></Button>
+                      <Button variant={viewport === 'desktop' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('desktop')}><Laptop className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsPreviewFullscreen(!isPreviewFullscreen)}>
+                  {isPreviewFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                </Button>
             </CardHeader>
-            <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
-              <SmoothPreview html={previewSrcDoc} />
+            <CardContent className="flex-1 flex items-center justify-center bg-muted/50 rounded-b-lg overflow-hidden p-4">
+              <div className={cn("bg-white shadow-lg transition-all duration-300 ease-in-out", {
+                "w-full h-full": viewport === 'desktop',
+                "w-[768px] h-[1024px] max-w-full max-h-full border-8 border-gray-800 rounded-2xl": viewport === 'tablet',
+                "w-[375px] h-[667px] max-w-full max-h-full border-8 border-gray-800 rounded-2xl": viewport === 'mobile',
+              })}>
+                <SmoothPreview html={previewSrcDoc} />
+              </div>
             </CardContent>
           </Card>
         )}
