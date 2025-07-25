@@ -1,12 +1,11 @@
-
 "use client";
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth';
@@ -413,14 +412,20 @@ export default function CodeEditor(props: CodeEditorProps) {
                     </TabsList>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col gap-4">
-                    <TabsContent value="html" className="flex-1 m-0">
-                      <StableEditor language="html" value={codes.frontend.html} onChange={(v) => onFrontendCodeChange('html', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                    <TabsContent value="html" className="flex-1 m-0 relative">
+                       <div className="absolute h-full w-full">
+                        <StableEditor language="html" value={codes.frontend.html} onChange={(v) => onFrontendCodeChange('html', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                      </div>
                     </TabsContent>
-                    <TabsContent value="css" className="flex-1 m-0">
-                      <StableEditor language="css" value={codes.frontend.css} onChange={(v) => onFrontendCodeChange('css', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                    <TabsContent value="css" className="flex-1 m-0 relative">
+                       <div className="absolute h-full w-full">
+                        <StableEditor language="css" value={codes.frontend.css} onChange={(v) => onFrontendCodeChange('css', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                      </div>
                     </TabsContent>
-                    <TabsContent value="javascript" className="flex-1 m-0">
-                      <StableEditor language="javascript" value={codes.frontend.javascript} onChange={(v) => onFrontendCodeChange('javascript', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                    <TabsContent value="javascript" className="flex-1 m-0 relative">
+                       <div className="absolute h-full w-full">
+                        <StableEditor language="javascript" value={codes.frontend.javascript} onChange={(v) => onFrontendCodeChange('javascript', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                      </div>
                     </TabsContent>
                   </CardContent>
                 </Tabs>
@@ -430,8 +435,10 @@ export default function CodeEditor(props: CodeEditorProps) {
                     <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
                     <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
                   </CardHeader>
-                  <CardContent className="flex-1">
-                    <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                  <CardContent className="flex-1 relative">
+                    <div className="absolute h-full w-full">
+                      <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                    </div>
                   </CardContent>
                 </div>
               )}
