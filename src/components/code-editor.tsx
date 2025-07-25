@@ -535,7 +535,6 @@ export default function CodeEditor(props: CodeEditorProps) {
           {/* Editor for Backend */}
           <div className="h-2/3">
              <Card className="flex flex-col h-full">
-              <div className="flex flex-col gap-4 h-full">
                 <CardHeader>
                   <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
                   <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
@@ -545,10 +544,9 @@ export default function CodeEditor(props: CodeEditorProps) {
                     <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
                   </div>
                 </CardContent>
-              </div>
-              <CardFooter className="flex flex-wrap gap-2 justify-between">
-                <CommonEditorActions/>
-              </CardFooter>
+                <CardFooter className="flex flex-wrap gap-2 justify-between">
+                    <CommonEditorActions/>
+                </CardFooter>
             </Card>
           </div>
         
@@ -766,5 +764,3 @@ export default function CodeEditor(props: CodeEditorProps) {
     </div>
   );
 }
-
-    
