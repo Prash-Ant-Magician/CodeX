@@ -4,7 +4,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
@@ -429,9 +429,7 @@ export default function CodeEditor(props: CodeEditorProps) {
               {selectedLanguage === 'frontend' ? (
                 <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(v) => setActiveTab(v as FileType)}>
                   <CardHeader className="flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Editor</CardTitle>
-                    </div>
+                    <CardTitle>Editor</CardTitle>
                     <TabsList>
                       <TabsTrigger value="html">index.html</TabsTrigger>
                       <TabsTrigger value="css">style.css</TabsTrigger>
@@ -552,7 +550,7 @@ export default function CodeEditor(props: CodeEditorProps) {
           </div>
         
           {/* Result for Backend */}
-          <div className={cn("flex-1 min-h-0", isEditorFullscreen && "hidden")}>
+          <div className={cn("flex-1", isEditorFullscreen && "hidden")}>
             <Card className="flex flex-col h-full">
               <Tabs defaultValue="output" className="flex-1 flex flex-col">
                 <CardHeader className="flex-row justify-between items-center">
@@ -765,5 +763,7 @@ export default function CodeEditor(props: CodeEditorProps) {
     </div>
   );
 }
+
+    
 
     
