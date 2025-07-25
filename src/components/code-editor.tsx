@@ -263,7 +263,7 @@ export default function CodeEditor({
     }
 
     if (typeof window !== 'undefined') {
-        setPreviewDoc(`data:text/html;base64,${window.btoa(unescape(encodeURIComponent(combinedDoc)))}`);
+        setPreviewDoc(`data:text/html;charset=utf-8,${encodeURIComponent(combinedDoc)}`);
     }
   }, [codes, selectedLanguage]);
 
