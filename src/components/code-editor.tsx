@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff, Maximize, Minimize, Laptop, Tablet, Smartphone } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff, Maximize, Minimize, Laptop, Tablet, Smartphone, Terminal } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,6 +36,7 @@ type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' 
 type FileType = 'html' | 'css' | 'javascript';
 type BackendLanguage = 'c' | 'python' | 'java' | 'typescript' | 'ruby' | 'r';
 type Viewport = 'desktop' | 'tablet' | 'mobile';
+type PreviewLog = { level: 'log' | 'error' | 'warn'; message: string, timestamp: number };
 
 interface CodeEditorProps {
   codes: AllCodes;
@@ -126,7 +127,7 @@ const SmoothPreview = ({ html }: { html: string }) => {
     <iframe
       ref={iframeRef}
       title="Preview"
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-same-origin"
       className="w-full h-full border-0 bg-white"
     />
   );
@@ -169,6 +170,7 @@ export default function CodeEditor(props: CodeEditorProps) {
   const [backendError, setBackendError] = useState('');
   const [isBackendRunning, setIsBackendRunning] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [previewLogs, setPreviewLogs] = useState<PreviewLog[]>([]);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -194,15 +196,64 @@ export default function CodeEditor(props: CodeEditorProps) {
   const previewSrcDoc = useMemo(() => {
     if (!isWebPreviewable) return '';
 
+    const logOverrideScript = `
+        <script>
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            const postMessage = (level, ...args) => {
+                window.parent.postMessage({
+                    source: 'iframe-console',
+                    level,
+                    message: args.map(arg => {
+                        try {
+                            return JSON.stringify(arg, (key, value) => 
+                                typeof value === 'function' ? 'function' : value, 2
+                            );
+                        } catch (e) {
+                            return String(arg);
+                        }
+                    }).join(' ')
+                }, '*');
+            };
+
+            console.log = (...args) => {
+                originalLog.apply(console, args);
+                postMessage('log', ...args);
+            };
+            console.error = (...args) => {
+                originalError.apply(console, args);
+                postMessage('error', ...args);
+            };
+            console.warn = (...args) => {
+                originalWarn.apply(console, args);
+                postMessage('warn', ...args);
+            };
+        </script>
+    `;
+
     if (selectedLanguage === 'frontend')
-      return `<html><head><style>${codes.frontend.css}</style></head><body>${codes.frontend.html}<script>${codes.frontend.javascript}</script></body></html>`;
+      return `<html><head><style>${codes.frontend.css}</style>${logOverrideScript}</head><body>${codes.frontend.html}<script>${codes.frontend.javascript}</script></body></html>`;
     if (selectedLanguage === 'html') return codes.html;
     if (selectedLanguage === 'javascript')
-      return `<html><body><script>${codes.javascript}</script></body></html>`;
+      return `<html><body>${logOverrideScript}<script>${codes.javascript}</script></body></html>`;
     if (selectedLanguage === 'css')
-      return `<html><head><style>${codes.css}</style></head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
+      return `<html><head><style>${codes.css}</style>${logOverrideScript}</head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
     return '';
   }, [codes, selectedLanguage, isWebPreviewable]);
+
+  /* ---------- Listen for logs from iframe ---------- */
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.source === 'iframe-console') {
+        const { level, message } = event.data;
+        setPreviewLogs(prevLogs => [...prevLogs, { level, message, timestamp: Date.now() }]);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   /* ---------- backend run ---------- */
   const handleRunBackend = useCallback(
@@ -243,6 +294,11 @@ export default function CodeEditor(props: CodeEditorProps) {
 
   const handleRun = () => {
     if (isBackendLang) handleRunBackend(selectedLanguage as BackendLanguage);
+    else {
+      // For frontend, clear old logs and re-render preview
+      setPreviewLogs([]);
+      // The preview re-renders automatically from state change, just need to clear logs.
+    }
   };
 
   /* ---------- other handlers ---------- */
@@ -356,51 +412,19 @@ export default function CodeEditor(props: CodeEditorProps) {
   };
 
   /* ---------- render ---------- */
-  return (
-    <div className="flex flex-col gap-4">
-      <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", isPreviewFullscreen && "hidden")}>
-        <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
-        <div className="sm:ml-auto flex items-center gap-2">
-          <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as Language)}>
-            <SelectTrigger className="w-full sm:w-64"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="frontend">Frontend (HTML/CSS/JS)</SelectItem>
-              <SelectItem value="html">HTML</SelectItem>
-              <SelectItem value="css">CSS</SelectItem>
-              <SelectItem value="javascript">JavaScript</SelectItem>
-              <SelectItem value="typescript">TypeScript</SelectItem>
-              <SelectItem value="python">Python</SelectItem>
-              <SelectItem value="java">Java</SelectItem>
-              <SelectItem value="c">C</SelectItem>
-              <SelectItem value="ruby">Ruby</SelectItem>
-              <SelectItem value="r">R</SelectItem>
-            </SelectContent>
-          </Select>
-          {isWebPreviewable && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={() => setIsPreviewVisible(!isPreviewVisible)}>
-                    {isPreviewVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isPreviewVisible ? 'Hide' : 'Show'} Preview</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+  const renderLayout = () => {
+    if (isWebPreviewable) {
+      return (
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-4',
+            isPreviewFullscreen ? 'h-screen' : 'md:h-[calc(100vh-10rem)]',
+            isPreviewVisible && !isPreviewFullscreen ? 'md:grid-cols-2' : 'md:grid-cols-1',
           )}
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          'grid grid-cols-1 gap-4',
-           isPreviewFullscreen ? 'h-screen' : 'md:h-[calc(100vh-10rem)]',
-          isWebPreviewable && isPreviewVisible && !isPreviewFullscreen ? 'md:grid-cols-2' : 'md:grid-cols-1',
-        )}
-      >
-        {/* ---- editor ---- */}
-        <div className={cn(isPreviewFullscreen && "hidden")}>
-            <Card className="flex flex-col h-[80vh] md:h-full">
+        >
+          {/* Editor for Web */}
+          <div className={cn(isPreviewFullscreen && "hidden")}>
+             <Card className="flex flex-col h-full">
               {selectedLanguage === 'frontend' ? (
                 <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(v) => setActiveTab(v as FileType)}>
                   <CardHeader className="flex-row items-center justify-between">
@@ -445,97 +469,92 @@ export default function CodeEditor(props: CodeEditorProps) {
                   </CardContent>
                 </div>
               )}
+               <CardFooter className="flex flex-wrap gap-2 justify-between">
+                  <CommonEditorActions/>
+               </CardFooter>
+            </Card>
+          </div>
 
-              <CardFooter className="flex flex-wrap gap-2 justify-between">
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={handleRun} disabled={isBackendRunning} className="bg-primary hover:bg-primary/90">
-                    {isBackendRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />} Run
-                  </Button>
-                  <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
-                    {isDebugging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />} Debug
-                  </Button>
-                  <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Sparkles className="mr-2 h-4 w-4" /> Generate
-                  </Button>
-                  {isAiSuggestionsEnabled && (
-                    <Popover onOpenChange={(open) => !open && setSuggestion('')}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
-                          {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+          {/* Preview for Web */}
+          {isPreviewVisible && (
+             <Tabs defaultValue="preview" className={cn("flex flex-col", isPreviewFullscreen ? "fixed inset-0 z-50 h-screen w-screen rounded-none" : "h-full")}>
+              <Card className="flex flex-col h-full">
+                  <CardHeader className="flex flex-row items-center justify-between space-x-2">
+                      <TabsList>
+                          <TabsTrigger value="preview">Preview</TabsTrigger>
+                          <TabsTrigger value="console">Console</TabsTrigger>
+                      </TabsList>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 rounded-md bg-muted p-1">
+                            <Button variant={viewport === 'mobile' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('mobile')}><Smartphone className="h-4 w-4" /></Button>
+                            <Button variant={viewport === 'tablet' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('tablet')}><Tablet className="h-4 w-4" /></Button>
+                            <Button variant={viewport === 'desktop' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('desktop')}><Laptop className="h-4 w-4" /></Button>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => setIsPreviewFullscreen(!isPreviewFullscreen)}>
+                          {isPreviewFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        {isSuggesting ? (
-                          <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
-                        ) : suggestion ? (
-                          <div className="grid gap-4">
-                            <div className="space-y-2">
-                              <h4 className="font-medium leading-none">AI Suggestion</h4>
-                              <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
-                            </div>
-                            <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                            <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
-                          </div>
-                        ) : (
-                          <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
-                        )}
-                      </PopoverContent>
-                    </Popover>
-                  )}
-                </div>
+                      </div>
+                  </CardHeader>
+                  <TabsContent value="preview" forceMount className={cn("flex-1 bg-muted/50 rounded-b-lg", {'m-0': isPreviewFullscreen})}>
+                      <div className="flex items-center justify-center w-full h-full p-4 overflow-hidden">
+                        <div className={cn("bg-white shadow-lg transition-all duration-300 ease-in-out", {
+                          "w-full h-full": viewport === 'desktop',
+                          "w-[768px] h-[1024px] max-w-full max-h-full border-8 border-gray-800 rounded-2xl": viewport === 'tablet',
+                          "w-[375px] h-[667px] max-w-full max-h-full border-8 border-gray-800 rounded-2xl": viewport === 'mobile',
+                        })}>
+                          <SmoothPreview html={previewSrcDoc} />
+                        </div>
+                      </div>
+                  </TabsContent>
+                  <TabsContent value="console" className="flex-1 m-0">
+                      <ScrollArea className="h-full">
+                          <pre className='p-4 text-xs font-mono'>
+                              {previewLogs.length === 0 ? <span className="text-muted-foreground">Console is empty.</span> : previewLogs.map((log, i) => (
+                                <div key={i} className={cn('whitespace-pre-wrap border-b py-1', {
+                                    'text-red-500': log.level === 'error',
+                                    'text-yellow-500': log.level === 'warn',
+                                })}>
+                                    <span className="text-muted-foreground mr-2">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                                    {log.message}
+                                </div>
+                              ))}
+                          </pre>
+                      </ScrollArea>
+                  </TabsContent>
+              </Card>
+            </Tabs>
+          )}
+        </div>
+      );
+    }
 
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
-                  <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Share to Forum</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+    if (isBackendLang) {
+      return (
+        <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
+          {/* Editor for Backend */}
+          <div className="h-2/3">
+             <Card className="flex flex-col h-full">
+              <div className="flex flex-col gap-4 h-full">
+                <CardHeader>
+                  <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
+                  <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 relative">
+                  <div className="absolute h-full w-full">
+                    <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                  </div>
+                </CardContent>
+              </div>
+              <CardFooter className="flex flex-wrap gap-2 justify-between">
+                <CommonEditorActions/>
               </CardFooter>
             </Card>
-        </div>
-
-        {/* ---- preview / result ---- */}
-        {isWebPreviewable && isPreviewVisible && (
-           <Card className={cn(
-              "flex flex-col", 
-              isPreviewFullscreen 
-                ? "fixed inset-0 z-50 h-screen w-screen rounded-none" 
-                : "h-[80vh] md:h-full"
-            )}>
-            <CardHeader className="flex flex-row items-center justify-between space-x-2">
-                <div className="flex items-center gap-2">
-                  <CardTitle>Preview</CardTitle>
-                  <div className="flex items-center gap-1 rounded-md bg-muted p-1">
-                      <Button variant={viewport === 'mobile' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('mobile')}><Smartphone className="h-4 w-4" /></Button>
-                      <Button variant={viewport === 'tablet' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('tablet')}><Tablet className="h-4 w-4" /></Button>
-                      <Button variant={viewport === 'desktop' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewport('desktop')}><Laptop className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setIsPreviewFullscreen(!isPreviewFullscreen)}>
-                  {isPreviewFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                </Button>
-            </CardHeader>
-            <CardContent className="flex-1 flex items-center justify-center bg-muted/50 rounded-b-lg overflow-hidden p-4">
-              <div className={cn("bg-white shadow-lg transition-all duration-300 ease-in-out", {
-                "w-full h-full": viewport === 'desktop',
-                "w-[768px] h-[1024px] max-w-full max-h-full border-8 border-gray-800 rounded-2xl": viewport === 'tablet',
-                "w-[375px] h-[667px] max-w-full max-h-full border-8 border-gray-800 rounded-2xl": viewport === 'mobile',
-              })}>
-                <SmoothPreview html={previewSrcDoc} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {isBackendLang && (
-          <div className={cn(isPreviewFullscreen && "hidden")}>
-            <Card className="flex-1 flex flex-col h-[80vh] md:h-full">
+          </div>
+        
+          {/* Result for Backend */}
+           <div className="h-1/3">
+            <Card className="flex-1 flex flex-col h-full">
               <Tabs defaultValue="output" className="flex-1 flex flex-col">
                 <CardHeader className="flex-row justify-between items-center">
                   <CardTitle>Result</CardTitle>
@@ -561,8 +580,102 @@ export default function CodeEditor(props: CodeEditorProps) {
               </Tabs>
             </Card>
           </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const CommonEditorActions = () => (
+    <>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={handleRun} disabled={isBackendRunning && isBackendLang} className="bg-primary hover:bg-primary/90">
+          {(isBackendRunning && isBackendLang) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />} Run
+        </Button>
+        <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
+          {isDebugging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />} Debug
+        </Button>
+        <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Sparkles className="mr-2 h-4 w-4" /> Generate
+        </Button>
+        {isAiSuggestionsEnabled && (
+          <Popover onOpenChange={(open) => !open && setSuggestion('')}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
+                {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              {isSuggesting ? (
+                <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
+              ) : suggestion ? (
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">AI Suggestion</h4>
+                    <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
+                  </div>
+                  <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                  <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
+                </div>
+              ) : (
+                <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
+              )}
+            </PopoverContent>
+          </Popover>
         )}
       </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
+        <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+            </TooltipTrigger>
+            <TooltipContent>Share to Forum</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", isPreviewFullscreen && "hidden")}>
+        <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
+        <div className="sm:ml-auto flex items-center gap-2">
+          <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as Language)}>
+            <SelectTrigger className="w-full sm:w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="frontend">Frontend (HTML/CSS/JS)</SelectItem>
+              <SelectItem value="html">HTML</SelectItem>
+              <SelectItem value="css">CSS</SelectItem>
+              <SelectItem value="javascript">JavaScript</SelectItem>
+              <SelectItem value="typescript">TypeScript</SelectItem>
+              <SelectItem value="python">Python</SelectItem>
+              <SelectItem value="java">Java</SelectItem>
+              <SelectItem value="c">C</SelectItem>
+              <SelectItem value="ruby">Ruby</SelectItem>
+              <SelectItem value="r">R</SelectItem>
+            </SelectContent>
+          </Select>
+          {isWebPreviewable && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" onClick={() => setIsPreviewVisible(!isPreviewVisible)}>
+                    {isPreviewVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isPreviewVisible ? 'Hide' : 'Show'} Preview</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      </div>
+
+      {renderLayout()}
 
       {/* ---------- dialogs ---------- */}
       <Dialog open={isSaveOpen} onOpenChange={setIsSaveOpen}>
@@ -653,3 +766,5 @@ export default function CodeEditor(props: CodeEditorProps) {
     </div>
   );
 }
+
+    
