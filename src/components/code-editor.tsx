@@ -222,6 +222,9 @@ export default function CodeEditor({
   const { user } = useAuth();
   const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, isTypingSoundEnabled, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
 
+  const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
+  const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
+  
   const loadHistory = useCallback(() => {
     if (typeof window !== 'undefined') {
       const savedHistory = localStorage.getItem(`runHistory-${selectedLanguage}`);
@@ -278,21 +281,11 @@ export default function CodeEditor({
     }
   }, [codes, selectedLanguage]);
   
-  const debouncePreview = useRef<NodeJS.Timeout | null>(null);
-
-  const debouncedUpdatePreview = useCallback(() => {
-    if (debouncePreview.current) clearTimeout(debouncePreview.current);
-    debouncePreview.current = setTimeout(updatePreview, 5000); // 5000 ms quiet period
-  }, [updatePreview]);
-
   useEffect(() => {
     if (isWebPreviewable) {
-      debouncedUpdatePreview();
+      updatePreview();
     }
-    return () => {
-      if (debouncePreview.current) clearTimeout(debouncePreview.current);
-    };
-  }, [codes, selectedLanguage, debouncedUpdatePreview]);
+  }, [codes, selectedLanguage, isWebPreviewable, updatePreview]);
 
 
   useEffect(() => {
@@ -339,7 +332,7 @@ export default function CodeEditor({
   };
 
   const handleRun = () => {
-    if (['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage)) {
+    if (isBackendLang) {
         handleRunBackend(selectedLanguage as BackendLanguage);
     } else {
         updatePreview();
@@ -533,9 +526,6 @@ export default function CodeEditor({
         </CardFooter>
       </Card>
   );
-
-  const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
-  const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
 
   const editorContent = (
       <div className={cn("grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]", isWebPreviewable && (isPreviewVisible ? "md:grid-cols-2" : "md:grid-cols-1"))}>
