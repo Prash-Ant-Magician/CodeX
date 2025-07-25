@@ -50,9 +50,92 @@ interface CodeEditorProps {
     onDeleteSnippet: (id: string) => Promise<void>;
 }
 
-// Editor component with debouncing to prevent re-renders on every keystroke
-const DebouncedEditor = React.memo(
-  function DebouncedEditor({
+// tiny helper to save/restore cursor
+function useEditorCursor() {
+  const posRef = useRef<any>(null);               // last cursor position
+  const editorRef = useRef<any>(null);            // Monaco instance
+
+  const onMount = (editor: any) => {
+    editorRef.current = editor;
+    if (posRef.current) {
+      // restore after re-render
+      editor.setPosition(posRef.current);
+      editor.focus();
+    }
+  };
+
+  const beforeUpdate = () => {
+    if (editorRef.current) {
+      posRef.current = editorRef.current.getPosition();
+    }
+  };
+
+  return { onMount, beforeUpdate };
+}
+
+const DebouncedEditor = ({
+  language,
+  value,
+  onChange,
+  options,
+  isSyntaxHighlightingEnabled,
+  theme,
+  onMount,
+}: {
+  language: string;
+  value: string;
+  onChange: (value: string | undefined) => void;
+  options: any;
+  isSyntaxHighlightingEnabled: boolean;
+  theme: string;
+  onMount: (editor: any) => void;
+}) => {
+  const [internalValue, setInternalValue] = useState(value);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setInternalValue(value);
+  }, [value]);
+
+  const handleLocalChange = (newValue: string | undefined) => {
+    const val = newValue || '';
+    setInternalValue(val);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      onChange(val);
+    }, 250); // 250ms debounce
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div className="flex-1 w-full h-full bg-muted/50 rounded-md overflow-hidden">
+      <Editor
+        height="100%"
+        language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
+        value={internalValue}
+        theme={theme}
+        onChange={handleLocalChange}
+        options={options}
+        onMount={onMount}
+        loading={<Loader2 className="h-8 w-8 animate-spin" />}
+      />
+    </div>
+  );
+};
+
+const DebouncedEditorWrapper = React.memo(
+  ({
     language,
     value,
     onChange,
@@ -62,69 +145,35 @@ const DebouncedEditor = React.memo(
   }: {
     language: string;
     value: string;
-    onChange: (value: string | undefined) => void;
+    onChange: (v: string | undefined) => void;
     options: any;
     isSyntaxHighlightingEnabled: boolean;
     theme: string;
-  }) {
-    const [internalValue, setInternalValue] = useState(value);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  }) => {
+    const cursor = useEditorCursor();
 
+    // capture cursor right before we give Monaco the new value
     useEffect(() => {
-        setInternalValue(value);
-    }, [value]);
-
-    const handleLocalChange = (newValue: string | undefined) => {
-        const val = newValue || '';
-        setInternalValue(val);
-
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-
-        timeoutRef.current = setTimeout(() => {
-            onChange(val);
-        }, 250); // 250ms debounce
-    };
-
-    useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-        };
-    }, []);
+      cursor.beforeUpdate();
+    }, [value, cursor]);
 
     return (
-      <div className="flex-1 w-full h-full bg-muted/50 rounded-md overflow-hidden">
-        <Editor
-          height="100%"
-          language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
-          value={internalValue}
-          theme={theme}
-          onChange={handleLocalChange}
-          options={options}
-          loading={<Loader2 className="h-8 w-8 animate-spin" />}
-        />
-      </div>
+      <DebouncedEditor
+        language={language}
+        value={value}
+        onChange={onChange}
+        options={options}
+        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
+        theme={theme}
+        onMount={cursor.onMount}
+      />
     );
   },
-  (prevProps, nextProps) => {
-    // Custom comparison function to prevent unnecessary re-renders
-    return (
-      prevProps.value === nextProps.value &&
-      prevProps.language === nextProps.language &&
-      prevProps.theme === nextProps.theme &&
-      prevProps.isSyntaxHighlightingEnabled === nextProps.isSyntaxHighlightingEnabled &&
-      prevProps.options.fontSize === nextProps.options.fontSize &&
-      prevProps.options.tabSize === nextProps.options.tabSize &&
-      prevProps.options.autoClosingBrackets === nextProps.options.autoClosingBrackets
-    );
-  }
 );
+DebouncedEditorWrapper.displayName = 'DebouncedEditorWrapper';
 
 
-function CodeEditor({ 
+export default function CodeEditor({ 
     codes,
     selectedLanguage,
     setSelectedLanguage,
@@ -480,7 +529,7 @@ function CodeEditor({
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col gap-4">
                   <TabsContent value="html" className="flex-1 m-0">
-                    <DebouncedEditor
+                    <DebouncedEditorWrapper
                         language="html"
                         value={codes.frontend.html}
                         onChange={(val) => onFrontendCodeChange('html', val || '')}
@@ -490,7 +539,7 @@ function CodeEditor({
                     />
                   </TabsContent>
                   <TabsContent value="css" className="flex-1 m-0">
-                    <DebouncedEditor
+                    <DebouncedEditorWrapper
                         language="css"
                         value={codes.frontend.css}
                         onChange={(val) => onFrontendCodeChange('css', val || '')}
@@ -500,7 +549,7 @@ function CodeEditor({
                     />
                   </TabsContent>
                   <TabsContent value="javascript" className="flex-1 m-0">
-                    <DebouncedEditor
+                    <DebouncedEditorWrapper
                         language="javascript"
                         value={codes.frontend.javascript}
                         onChange={(val) => onFrontendCodeChange('javascript', val || '')}
@@ -518,7 +567,7 @@ function CodeEditor({
                         <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col gap-4">
-                        <DebouncedEditor
+                        <DebouncedEditorWrapper
                             language={selectedLanguage}
                             value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]}
                             onChange={(val) => onCodeChange(selectedLanguage, val || '')}
@@ -665,7 +714,3 @@ function CodeEditor({
     </div>
   );
 }
-
-export default CodeEditor;
-
-    
