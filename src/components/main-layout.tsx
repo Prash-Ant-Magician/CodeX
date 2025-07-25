@@ -36,7 +36,7 @@ import * as z from 'zod';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Snippet, saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnippets, deleteLocalSnippet, SnippetData } from '@/lib/snippets';
+import { Snippet, saveSnippet, getSnippets, deleteSnippet, saveLocalSnippet, getLocalSnippets, SnippetData } from '@/lib/snippets';
 
 
 const postSchema = z.object({
@@ -199,6 +199,7 @@ function UserNav() {
 }
 
 const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; setActiveView: (view: ActiveView) => void; }) => {
+    const userNav = UserNav();
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
             <div className="container flex h-16 items-center">
@@ -224,7 +225,7 @@ const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; set
                         ))}
                     </nav>
                     <div className="hidden md:block">
-                        <UserNav />
+                        {userNav}
                     </div>
                     <Sheet>
                         <SheetTrigger asChild>
@@ -251,7 +252,7 @@ const MainHeader = ({ activeView, setActiveView }: { activeView: ActiveView; set
                                 ))}
                             </nav>
                             <div className="mt-6 border-t pt-6">
-                                <UserNav />
+                                {userNav}
                             </div>
                         </SheetContent>
                     </Sheet>
@@ -289,7 +290,7 @@ export function MainLayout() {
     setIsCreatePostOpen(true);
   };
 
-  const handleCreatePost = async (values: z.infer<typeof postSchema>) => {
+  const handleCreatePost = async (values: z.infer<typeof postSchema,>) => {
     setIsSubmitting(true);
     try {
       const postData: PostData = {
@@ -480,3 +481,5 @@ export function MainLayout() {
     </SettingsProvider>
   );
 }
+
+    
