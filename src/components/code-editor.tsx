@@ -412,6 +412,71 @@ export default function CodeEditor(props: CodeEditorProps) {
     setSuggestion('');
   };
 
+  const commonEditorActions = () => (
+    <>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={handleRun} disabled={isBackendRunning && isBackendLang} className="bg-primary hover:bg-primary/90">
+          {(isBackendRunning && isBackendLang) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />} Run
+        </Button>
+        <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
+          {isDebugging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />} Debug
+        </Button>
+        <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Sparkles className="mr-2 h-4 w-4" /> Generate
+        </Button>
+        {isAiSuggestionsEnabled && (
+          <Popover onOpenChange={(open) => !open && setSuggestion('')}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
+                {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              {isSuggesting ? (
+                <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
+              ) : suggestion ? (
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">AI Suggestion</h4>
+                    <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
+                  </div>
+                  <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                  <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
+                </div>
+              ) : (
+                <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
+              )}
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
+        <Button variant="outline" onClick={() => { setIsLoadOpen(true); fetchSnippets(); }}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+            </TooltipTrigger>
+            <TooltipContent>Share to Forum</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        {isWebPreviewable && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                   <Button variant="outline" size="icon" onClick={() => setIsEditorFullscreen(!isEditorFullscreen)}>
+                      {isEditorFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                   </Button>
+                </TooltipTrigger>
+                <TooltipContent>Fullscreen Editor</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+        )}
+      </div>
+    </>
+  );
+
   /* ---------- render ---------- */
   const renderLayout = () => {
     if (isWebPreviewable) {
@@ -424,7 +489,7 @@ export default function CodeEditor(props: CodeEditorProps) {
           )}
         >
           {/* Editor for Web */}
-          <div className={cn(isPreviewFullscreen && "hidden")}>
+          <div className={cn(isPreviewFullscreen && "hidden", isEditorFullscreen ? "fixed inset-0 z-50 bg-background p-4" : "")}>
              <Card className="flex flex-col h-full">
               {selectedLanguage === 'frontend' ? (
                 <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(v) => setActiveTab(v as FileType)}>
@@ -467,14 +532,14 @@ export default function CodeEditor(props: CodeEditorProps) {
                 </div>
               )}
                <CardFooter className="flex flex-wrap gap-2 justify-between">
-                  <CommonEditorActions/>
+                  {commonEditorActions()}
                </CardFooter>
             </Card>
           </div>
 
           {/* Preview for Web */}
           {isPreviewVisible && (
-             <Tabs defaultValue="preview" className={cn("flex flex-col", isPreviewFullscreen ? "fixed inset-0 z-50 h-screen w-screen rounded-none" : "h-full")}>
+             <Tabs defaultValue="preview" className={cn("flex flex-col", isPreviewFullscreen ? "fixed inset-0 z-50 h-screen w-screen rounded-none" : "h-full", isEditorFullscreen && "hidden")}>
               <Card className="flex flex-col h-full">
                   <CardHeader className="flex flex-row items-center justify-between space-x-2">
                       <TabsList>
@@ -528,9 +593,9 @@ export default function CodeEditor(props: CodeEditorProps) {
 
     if (isBackendLang) {
       return (
-        <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
+        <div className="flex flex-col gap-4 h-[calc(100vh-10rem)]">
           {/* Editor for Backend */}
-          <div className="flex-[2_1_0%] min-h-0">
+          <div className={cn("flex-[2_1_0%] min-h-0", isEditorFullscreen && "fixed inset-0 z-50 bg-background p-4")}>
             <Card className="flex flex-col h-full">
               <CardHeader className='flex-row justify-between items-center'>
                 <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
@@ -544,13 +609,13 @@ export default function CodeEditor(props: CodeEditorProps) {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-wrap gap-2 justify-between">
-                <CommonEditorActions/>
+                {commonEditorActions()}
               </CardFooter>
             </Card>
           </div>
         
           {/* Result for Backend */}
-          <div className="flex-1">
+          <div className={cn("flex-1", isEditorFullscreen && "hidden")}>
             <Card className="flex flex-col h-full">
               <Tabs defaultValue="output" className="flex-1 flex flex-col">
                 <CardHeader className="flex-row justify-between items-center">
@@ -589,59 +654,6 @@ export default function CodeEditor(props: CodeEditorProps) {
 
     return null;
   };
-
-  const CommonEditorActions = () => (
-    <>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={handleRun} disabled={isBackendRunning && isBackendLang} className="bg-primary hover:bg-primary/90">
-          {(isBackendRunning && isBackendLang) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />} Run
-        </Button>
-        <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
-          {isDebugging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />} Debug
-        </Button>
-        <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-          <Sparkles className="mr-2 h-4 w-4" /> Generate
-        </Button>
-        {isAiSuggestionsEnabled && (
-          <Popover onOpenChange={(open) => !open && setSuggestion('')}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
-                {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              {isSuggesting ? (
-                <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
-              ) : suggestion ? (
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium leading-none">AI Suggestion</h4>
-                    <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
-                  </div>
-                  <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                  <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
-                </div>
-              ) : (
-                <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
-              )}
-            </PopoverContent>
-          </Popover>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
-        <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
-            </TooltipTrigger>
-            <TooltipContent>Share to Forum</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    </>
-  );
 
   return (
     <div className="flex flex-col gap-4">
