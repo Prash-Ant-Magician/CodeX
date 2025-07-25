@@ -133,6 +133,8 @@ const DebouncedEditor = ({
     </div>
   );
 };
+DebouncedEditor.displayName = 'DebouncedEditor';
+
 
 const DebouncedEditorWrapper = React.memo(
   ({
@@ -169,6 +171,15 @@ const DebouncedEditorWrapper = React.memo(
       />
     );
   },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.value === nextProps.value &&
+      prevProps.language === nextProps.language &&
+      prevProps.theme === nextProps.theme &&
+      prevProps.isSyntaxHighlightingEnabled ===
+        nextProps.isSyntaxHighlightingEnabled
+    );
+  }
 );
 DebouncedEditorWrapper.displayName = 'DebouncedEditorWrapper';
 
@@ -187,7 +198,7 @@ export default function CodeEditor({
     onDeleteSnippet
 }: CodeEditorProps) {
   const [activeTab, setActiveTab] = useState<FileType>('html');
-  const [previewDoc, setPreviewDoc] = useState('');
+  const [previewDoc, setPreviewDoc] = useState('about:blank');
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugResult, setDebugResult] = useState('');
   const [isDebugAlertOpen, setIsDebugAlertOpen] = useState(false);
@@ -266,21 +277,6 @@ export default function CodeEditor({
         setPreviewDoc(`data:text/html;charset=utf-8,${encodeURIComponent(combinedDoc)}`);
     }
   }, [codes, selectedLanguage]);
-
-  const debouncePreview = useRef<NodeJS.Timeout | null>(null);
-
-  const debouncedUpdatePreview = useCallback(() => {
-    if (debouncePreview.current) clearTimeout(debouncePreview.current);
-    debouncePreview.current = setTimeout(updatePreview, 700); // 700 ms quiet period
-  }, [updatePreview]);
-
-  useEffect(() => {
-    debouncedUpdatePreview();
-    return () => {
-      if (debouncePreview.current) clearTimeout(debouncePreview.current);
-    };
-  }, [codes, selectedLanguage, debouncedUpdatePreview]);
-
 
   useEffect(() => {
     if (isLoadOpen) {
@@ -720,3 +716,5 @@ export default function CodeEditor({
     </div>
   );
 }
+
+    
