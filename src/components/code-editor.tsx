@@ -277,6 +277,23 @@ export default function CodeEditor({
         setPreviewDoc(`data:text/html;charset=utf-8,${encodeURIComponent(combinedDoc)}`);
     }
   }, [codes, selectedLanguage]);
+  
+  const debouncePreview = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedUpdatePreview = useCallback(() => {
+    if (debouncePreview.current) clearTimeout(debouncePreview.current);
+    debouncePreview.current = setTimeout(updatePreview, 5000); // 5000 ms quiet period
+  }, [updatePreview]);
+
+  useEffect(() => {
+    if (isWebPreviewable) {
+      debouncedUpdatePreview();
+    }
+    return () => {
+      if (debouncePreview.current) clearTimeout(debouncePreview.current);
+    };
+  }, [codes, selectedLanguage, debouncedUpdatePreview]);
+
 
   useEffect(() => {
     if (isLoadOpen) {
@@ -716,3 +733,5 @@ export default function CodeEditor({
     </div>
   );
 }
+
+    
