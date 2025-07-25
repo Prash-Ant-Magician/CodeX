@@ -4,23 +4,8 @@ import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth';
@@ -30,7 +15,7 @@ import { suggestCode } from '@/ai/flows/suggest-code';
 import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useSettings } from './settings';
@@ -81,6 +66,7 @@ function useEditorCursor() {
   const beforeUpdate = () => {
     if (editorRef.current) posRef.current = editorRef.current.getPosition();
   };
+
   return { onMount, beforeUpdate };
 }
 
@@ -103,13 +89,16 @@ const StableEditorWrapper = React.memo(
   }) => {
     const cursor = useEditorCursor();
     const { isTypingSoundEnabled } = useSettings();
+
     useEffect(() => {
       cursor.beforeUpdate();
     }, [value, cursor]);
+
     const handleCodeChange = (v: string | undefined) => {
       if (isTypingSoundEnabled) playKeystrokeSound();
       onChange(v);
     };
+
     return (
       <Editor
         height="100%"
@@ -164,7 +153,6 @@ export default function CodeEditor(props: CodeEditorProps) {
     onDeleteSnippet,
   } = props;
 
-  /* ---------- state ---------- */
   const [activeTab, setActiveTab] = useState<FileType>('html');
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugResult, setDebugResult] = useState('');
@@ -179,22 +167,15 @@ export default function CodeEditor(props: CodeEditorProps) {
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
+
   const [backendOutput, setBackendOutput] = useState('');
   const [backendError, setBackendError] = useState('');
   const [isBackendRunning, setIsBackendRunning] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  /* ---------- hooks ---------- */
   const { toast } = useToast();
   const { user } = useAuth();
-  const {
-    isAiSuggestionsEnabled,
-    editorFontSize,
-    tabSize,
-    autoBrackets,
-    editorTheme,
-    isSyntaxHighlightingEnabled,
-  } = useSettings();
+  const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
 
   /* ---------- helpers ---------- */
   const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
@@ -225,7 +206,6 @@ export default function CodeEditor(props: CodeEditorProps) {
       return `<html><head><style>${codes.css}</style></head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
     return '';
   }, [codes, selectedLanguage, isWebPreviewable]);
-
 
   /* ---------- backend run ---------- */
   const handleRunBackend = useCallback(
@@ -292,20 +272,7 @@ export default function CodeEditor(props: CodeEditorProps) {
     let codeToShare: string;
     let langToShare: string;
     if (selectedLanguage === 'frontend') {
-      codeToShare = `HTML:
-\`\`\`html
-${codes.frontend.html}
-\`\`\`
-
-CSS:
-\`\`\`css
-${codes.frontend.css}
-\`\`\`
-
-JavaScript:
-\`\`\`javascript
-${codes.frontend.javascript}
-\`\`\``;
+      codeToShare = `HTML:\n\`\`\`html\n${codes.frontend.html}\n\`\`\`\n\nCSS:\n\`\`\`css\n${codes.frontend.css}\n\`\`\`\n\nJavaScript:\n\`\`\`javascript\n${codes.frontend.javascript}\n\`\`\``;
       langToShare = 'web';
     } else {
       codeToShare = codes[selectedLanguage as Exclude<Language, 'frontend'>];
