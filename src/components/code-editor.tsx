@@ -30,6 +30,7 @@ import { runRCode } from '@/ai/flows/run-r';
 import { runRubyCode } from '@/ai/flows/run-ruby';
 import RunHistory, { type HistoryEntry } from './run-history';
 import { Snippet } from '@/lib/snippets';
+import { playKeystrokeSound } from '@/lib/sounds';
 
 /* ---------- types ---------- */
 type Language = 'frontend' | 'html' | 'css' | 'javascript' | 'typescript' | 'c' | 'python' | 'java' | 'ruby' | 'r';
@@ -122,16 +123,24 @@ const StableEditorWrapper = ({
   theme: string;
 }) => {
     const cursor = useEditorCursor();
+    const { isTypingSoundEnabled } = useSettings();
 
     useEffect(() => {
       cursor.beforeUpdate();
     }, [value, cursor]);
 
+    const handleCodeChange = (v: string | undefined) => {
+        if (isTypingSoundEnabled) {
+            playKeystrokeSound();
+        }
+        onChange(v);
+    }
+
     return (
       <StableEditor
         language={language}
         value={value}
-        onChange={onChange}
+        onChange={handleCodeChange}
         options={options}
         isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
         theme={theme}
@@ -266,7 +275,6 @@ export default function CodeEditor({
   }, [isLoadOpen, fetchSnippets]);
 
   /* ---------- live preview ---------- */
-  const previewDebounce = useRef<NodeJS.Timeout | null>(null);
 
   const updatePreview = useCallback(() => {
     if (!isWebPreviewable) return;
@@ -280,11 +288,6 @@ export default function CodeEditor({
     }
     setPreviewDoc(`data:text/html;charset=utf-8,${encodeURIComponent(doc)}`);
   }, [codes, selectedLanguage, isWebPreviewable]);
-
-  useEffect(() => {
-    if (!isWebPreviewable) return;
-    updatePreview();
-  }, [codes, selectedLanguage, updatePreview, isWebPreviewable]);
 
   /* ---------- backend run ---------- */
   const handleRunBackend = useCallback(
@@ -673,5 +676,3 @@ export default function CodeEditor({
     </div>
   );
 }
-
-    
