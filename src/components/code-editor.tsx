@@ -641,7 +641,7 @@ export default function CodeEditor(props: CodeEditorProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", isPreviewFullscreen || isEditorFullscreen) && "hidden"}>
+      <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", (isPreviewFullscreen || isEditorFullscreen) && "hidden")}>
         <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
         <div className="sm:ml-auto flex items-center gap-2">
           <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as Language)}>
@@ -765,3 +765,5 @@ export default function CodeEditor(props: CodeEditorProps) {
     </div>
   );
 }
+
+    
