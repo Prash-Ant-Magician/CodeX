@@ -218,8 +218,14 @@ function CodeEditor({
 
 
   useEffect(() => {
-    updatePreview();
-  }, [codes, selectedLanguage, updatePreview]);
+    const handler = setTimeout(() => {
+        updatePreview();
+    }, 500); // Debounce preview update by 500ms
+
+    return () => {
+        clearTimeout(handler);
+    };
+}, [codes, selectedLanguage, updatePreview]);
 
   useEffect(() => {
     if (isLoadOpen) {
