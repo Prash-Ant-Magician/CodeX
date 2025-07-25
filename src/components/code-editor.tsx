@@ -131,9 +131,7 @@ export default function CodeEditor(props: CodeEditorProps) {
     onDeleteSnippet,
   } = props;
 
-  /* ---------- state ---------- */
   const [activeTab, setActiveTab] = useState<FileType>('html');
-  const [previewDoc, setPreviewDoc] = useState('about:blank');
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugResult, setDebugResult] = useState('');
   const [isDebugAlertOpen, setIsDebugAlertOpen] = useState(false);
@@ -152,9 +150,7 @@ export default function CodeEditor(props: CodeEditorProps) {
   const [backendError, setBackendError] = useState('');
   const [isBackendRunning, setIsBackendRunning] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  /* ---------- hooks ---------- */
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
@@ -175,40 +171,18 @@ export default function CodeEditor(props: CodeEditorProps) {
     [editorFontSize, tabSize, autoBrackets],
   );
 
-  /* ---------- instant, smooth preview ---------- */
-  const updatePreview = useCallback(() => {
-    if (!isWebPreviewable) return;
+  /* ---------- instant preview (srcDoc) ---------- */
+  const previewSrcDoc = useMemo(() => {
+    if (!isWebPreviewable) return '';
 
-    let doc = '';
-    if (selectedLanguage === 'frontend') {
-      doc = `<html><head><style>${codes.frontend.css}</style></head><body>${codes.frontend.html}<script>${codes.frontend.javascript}</script></body></html>`;
-    } else if (selectedLanguage === 'html') {
-      doc = codes.html;
-    } else if (selectedLanguage === 'javascript') {
-      doc = `<html><body><script>${codes.javascript}</script></body></html>`;
-    } else if (selectedLanguage === 'css') {
-      doc = `<html><head><style>${codes.css}</style></head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
-    }
-
-    // create **new** Blob URL
-    const blob = new Blob([doc], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-
-    // swap src without re-mounting iframe
-    if (iframeRef.current) {
-      iframeRef.current.src = url;
-    }
-
-    // revoke previous blob to free memory
-    if (previewDoc.startsWith('blob:')) URL.revokeObjectURL(previewDoc);
-    setPreviewDoc(url);
-  }, [codes, selectedLanguage, isWebPreviewable, previewDoc]);
-
-  // live update **without** debounce (instant)
-  useEffect(() => {
-    if (!isWebPreviewable) return;
-    updatePreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (selectedLanguage === 'frontend')
+      return `<html><head><style>${codes.frontend.css}</style></head><body>${codes.frontend.html}<script>${codes.frontend.javascript}</script></body></html>`;
+    if (selectedLanguage === 'html') return codes.html;
+    if (selectedLanguage === 'javascript')
+      return `<html><body><script>${codes.javascript}</script></body></html>`;
+    if (selectedLanguage === 'css')
+      return `<html><head><style>${codes.css}</style></head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
+    return '';
   }, [codes, selectedLanguage, isWebPreviewable]);
 
   /* ---------- backend run ---------- */
@@ -249,9 +223,7 @@ export default function CodeEditor(props: CodeEditorProps) {
   );
 
   const handleRun = () => {
-    if (isBackendLang) {
-      handleRunBackend(selectedLanguage as BackendLanguage);
-    }
+    if (isBackendLang) handleRunBackend(selectedLanguage as BackendLanguage);
   };
 
   /* ---------- other handlers ---------- */
@@ -498,7 +470,7 @@ export default function CodeEditor(props: CodeEditorProps) {
           </CardFooter>
         </Card>
 
-        {/* ---- preview / result ---- */}
+        {/* ---- instant preview via srcDoc ---- */}
         {isWebPreviewable && isPreviewVisible && (
           <Card className="flex flex-col h-[80vh] md:h-full">
             <CardHeader>
@@ -506,8 +478,7 @@ export default function CodeEditor(props: CodeEditorProps) {
             </CardHeader>
             <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
               <iframe
-                ref={iframeRef}
-                src={previewDoc}
+                srcDoc={previewSrcDoc}
                 title="Preview"
                 sandbox="allow-scripts"
                 className="w-full h-full border-0 bg-white"
