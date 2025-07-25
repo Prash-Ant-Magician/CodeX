@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff, Maximize, Minimize, Laptop, Tablet, Smartphone, Terminal } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff, Maximize, Minimize, Laptop, Tablet, Smartphone, Terminal, History as HistoryIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -556,8 +556,14 @@ export default function CodeEditor(props: CodeEditorProps) {
                 <CardHeader className="flex-row justify-between items-center">
                   <CardTitle>Result</CardTitle>
                   <TabsList>
-                    <TabsTrigger value="output">Output</TabsTrigger>
-                    <TabsTrigger value="history">History</TabsTrigger>
+                    <TabsTrigger value="output" className="flex items-center gap-2">
+                      <Terminal className="h-4 w-4" />
+                      Output
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="flex items-center gap-2">
+                      <HistoryIcon className="h-4 w-4" />
+                      History
+                    </TabsTrigger>
                   </TabsList>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-auto">
