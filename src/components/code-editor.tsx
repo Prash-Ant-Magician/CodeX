@@ -534,24 +534,24 @@ export default function CodeEditor(props: CodeEditorProps) {
         <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
           {/* Editor for Backend */}
           <div className="flex-[2_1_0%] min-h-0">
-             <Card className="flex flex-col h-full">
-                <CardHeader>
-                  <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
-                  <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 relative">
-                  <div className="absolute h-full w-full">
-                    <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-wrap gap-2 justify-between">
-                    <CommonEditorActions/>
-                </CardFooter>
+            <Card className="flex flex-col h-full">
+              <CardHeader>
+                <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
+                <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 relative">
+                <div className="absolute h-full w-full">
+                  <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-wrap gap-2 justify-between">
+                <CommonEditorActions/>
+              </CardFooter>
             </Card>
           </div>
         
           {/* Result for Backend */}
-           <div className="flex-1">
+          <div className="flex-1 min-h-0">
             <Card className="flex flex-col h-full">
               <Tabs defaultValue="output" className="flex-1 flex flex-col">
                 <CardHeader className="flex-row justify-between items-center">
