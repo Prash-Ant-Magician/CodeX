@@ -764,5 +764,3 @@ export default function CodeEditor(props: CodeEditorProps) {
     </div>
   );
 }
-
-    
