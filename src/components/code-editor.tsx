@@ -180,11 +180,12 @@ export default function CodeEditor(props: CodeEditorProps) {
     [editorFontSize, tabSize, autoBrackets],
   );
 
-  /* ---------- live preview ---------- */
-  const previewDebounce = useRef<NodeJS.Timeout | null>(null);
+  /* ---------- instant, smooth preview ---------- */
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const updatePreview = useCallback(() => {
     if (!isWebPreviewable) return;
+
     let doc = '';
     if (selectedLanguage === 'frontend') {
       doc = `<html><head><style>${codes.frontend.css}</style></head><body>${codes.frontend.html}<script>${codes.frontend.javascript}</script></body></html>`;
@@ -195,17 +196,28 @@ export default function CodeEditor(props: CodeEditorProps) {
     } else if (selectedLanguage === 'css') {
       doc = `<html><head><style>${codes.css}</style></head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
     }
-    setPreviewDoc(`data:text/html;charset=utf-8,${encodeURIComponent(doc)}`);
-  }, [codes, selectedLanguage, isWebPreviewable]);
 
+    // create **new** Blob URL
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+
+    // swap src without re-mounting iframe
+    if (iframeRef.current) {
+      iframeRef.current.src = url;
+    }
+
+    // revoke previous blob to free memory
+    if (previewDoc.startsWith('blob:')) URL.revokeObjectURL(previewDoc);
+    setPreviewDoc(url);
+  }, [codes, selectedLanguage, isWebPreviewable, previewDoc]);
+
+  // live update **without** debounce (instant)
   useEffect(() => {
     if (!isWebPreviewable) return;
-    if (previewDebounce.current) clearTimeout(previewDebounce.current);
-    previewDebounce.current = setTimeout(updatePreview, 500);
-    return () => {
-      if (previewDebounce.current) clearTimeout(previewDebounce.current);
-    };
-  }, [codes, selectedLanguage, updatePreview, isWebPreviewable]);
+    updatePreview();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codes, selectedLanguage, isWebPreviewable]);
+
 
   /* ---------- backend run ---------- */
   const handleRunBackend = useCallback(
@@ -245,8 +257,11 @@ export default function CodeEditor(props: CodeEditorProps) {
   );
 
   const handleRun = () => {
-    if (isBackendLang) handleRunBackend(selectedLanguage as BackendLanguage);
-    else updatePreview();
+    if (isBackendLang) {
+      handleRunBackend(selectedLanguage as BackendLanguage);
+    } else {
+      updatePreview();
+    }
   };
 
   /* ---------- other handlers ---------- */
@@ -500,7 +515,13 @@ export default function CodeEditor(props: CodeEditorProps) {
               <CardTitle>Preview</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
-              <iframe src={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" />
+              <iframe
+                ref={iframeRef}
+                src={previewDoc}
+                title="Preview"
+                sandbox="allow-scripts"
+                className="w-full h-full border-0 bg-white"
+              />
             </CardContent>
           </Card>
         )}
@@ -609,11 +630,11 @@ export default function CodeEditor(props: CodeEditorProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>AI Debugging Assistant</AlertDialogTitle>
-            <AlertDialogDescription asChild>
+            <DialogDescription asChild>
                 <ScrollArea className="h-72 pr-4">
                     <pre className="whitespace-pre-wrap text-sm font-sans">{debugResult}</pre>
                 </ScrollArea>
-            </AlertDialogDescription>
+            </DialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction>Got it</AlertDialogAction>
