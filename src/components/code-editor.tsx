@@ -192,7 +192,7 @@ export default function CodeEditor({
 
   /* ---------- helpers ---------- */
   const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
-  const isWebPreviewable = ['frontend', 'html', 'javascript'].includes(selectedLanguage);
+  const isWebPreviewable = ['frontend', 'html', 'javascript', 'css'].includes(selectedLanguage);
 
   const loadHistory = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -285,6 +285,8 @@ export default function CodeEditor({
       doc = codes.html;
     } else if (selectedLanguage === 'javascript') {
       doc = `<html><body><script>${codes.javascript}</script></body></html>`;
+    }  else if (selectedLanguage === 'css') {
+      doc = `<html><head><style>${codes.css}</style></head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
     }
     setPreviewDoc(`data:text/html;charset=utf-8,${encodeURIComponent(doc)}`);
   }, [codes, selectedLanguage, isWebPreviewable]);
@@ -676,3 +678,5 @@ export default function CodeEditor({
     </div>
   );
 }
+
+    
