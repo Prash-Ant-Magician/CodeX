@@ -265,17 +265,6 @@ export default function CodeEditor({
     setPreviewDoc(combinedDoc);
   }, [codes, selectedLanguage]);
 
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-        updatePreview();
-    }, 500); // Debounce preview update by 500ms
-
-    return () => {
-        clearTimeout(handler);
-    };
-}, [codes, selectedLanguage, updatePreview]);
-
   useEffect(() => {
     if (isLoadOpen) {
       fetchSnippets();
