@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
@@ -12,7 +13,7 @@ import { useAuth } from '@/lib/firebase/auth';
 import { debugCode } from '@/ai/flows/debug-code';
 import { generateCodeFromPrompt } from '@/ai/flows/generate-code-from-prompt';
 import { suggestCode } from '@/ai/flows/suggest-code';
-import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff } from 'lucide-react';
+import { Play, Bug, Save, FolderOpen, Loader2, Trash2, Sparkles, Lightbulb, CornerDownLeft, Share2, Eye, EyeOff, Maximize, Minimize } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -160,6 +161,7 @@ export default function CodeEditor(props: CodeEditorProps) {
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
+  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
   const [backendOutput, setBackendOutput] = useState('');
   const [backendError, setBackendError] = useState('');
@@ -354,7 +356,7 @@ export default function CodeEditor(props: CodeEditorProps) {
   /* ---------- render ---------- */
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+      <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", isPreviewFullscreen && "hidden")}>
         <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
         <div className="sm:ml-auto flex items-center gap-2">
           <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as Language)}>
@@ -389,107 +391,118 @@ export default function CodeEditor(props: CodeEditorProps) {
 
       <div
         className={cn(
-          'grid grid-cols-1 gap-4 md:h-[calc(100vh-10rem)]',
-          isWebPreviewable && isPreviewVisible ? 'md:grid-cols-2' : 'md:grid-cols-1',
+          'grid grid-cols-1 gap-4',
+           isPreviewFullscreen ? 'h-screen' : 'md:h-[calc(100vh-10rem)]',
+          isWebPreviewable && isPreviewVisible && !isPreviewFullscreen ? 'md:grid-cols-2' : 'md:grid-cols-1',
         )}
       >
         {/* ---- editor ---- */}
-        <Card className="flex flex-col h-[80vh] md:h-full">
-          {selectedLanguage === 'frontend' ? (
-            <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(v) => setActiveTab(v as FileType)}>
-              <CardHeader className="flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Editor</CardTitle>
-                  <CardDescription>Multi-file editor for web projects.</CardDescription>
+        <div className={cn(isPreviewFullscreen && "hidden")}>
+            <Card className="flex flex-col h-[80vh] md:h-full">
+              {selectedLanguage === 'frontend' ? (
+                <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(v) => setActiveTab(v as FileType)}>
+                  <CardHeader className="flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Editor</CardTitle>
+                      <CardDescription>Multi-file editor for web projects.</CardDescription>
+                    </div>
+                    <TabsList>
+                      <TabsTrigger value="html">index.html</TabsTrigger>
+                      <TabsTrigger value="css">style.css</TabsTrigger>
+                      <TabsTrigger value="javascript">script.js</TabsTrigger>
+                    </TabsList>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col gap-4">
+                    <TabsContent value="html" className="flex-1 m-0">
+                      <StableEditor language="html" value={codes.frontend.html} onChange={(v) => onFrontendCodeChange('html', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                    </TabsContent>
+                    <TabsContent value="css" className="flex-1 m-0">
+                      <StableEditor language="css" value={codes.frontend.css} onChange={(v) => onFrontendCodeChange('css', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                    </TabsContent>
+                    <TabsContent value="javascript" className="flex-1 m-0">
+                      <StableEditor language="javascript" value={codes.frontend.javascript} onChange={(v) => onFrontendCodeChange('javascript', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                    </TabsContent>
+                  </CardContent>
+                </Tabs>
+              ) : (
+                <div className="flex flex-col gap-4 h-full">
+                  <CardHeader>
+                    <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
+                    <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
+                  </CardContent>
                 </div>
-                <TabsList>
-                  <TabsTrigger value="html">index.html</TabsTrigger>
-                  <TabsTrigger value="css">style.css</TabsTrigger>
-                  <TabsTrigger value="javascript">script.js</TabsTrigger>
-                </TabsList>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col gap-4">
-                <TabsContent value="html" className="flex-1 m-0">
-                  <StableEditor language="html" value={codes.frontend.html} onChange={(v) => onFrontendCodeChange('html', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
-                </TabsContent>
-                <TabsContent value="css" className="flex-1 m-0">
-                  <StableEditor language="css" value={codes.frontend.css} onChange={(v) => onFrontendCodeChange('css', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
-                </TabsContent>
-                <TabsContent value="javascript" className="flex-1 m-0">
-                  <StableEditor language="javascript" value={codes.frontend.javascript} onChange={(v) => onFrontendCodeChange('javascript', v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
-                </TabsContent>
-              </CardContent>
-            </Tabs>
-          ) : (
-            <div className="flex flex-col gap-4 h-full">
-              <CardHeader>
-                <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
-                <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <StableEditor language={selectedLanguage} value={codes[selectedLanguage as keyof Omit<AllCodes, 'frontend'>]} onChange={(v) => onCodeChange(selectedLanguage, v || '')} options={editorOptions} isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled} theme={editorTheme} />
-              </CardContent>
-            </div>
-          )}
-
-          <CardFooter className="flex flex-wrap gap-2 justify-between">
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={handleRun} disabled={isBackendRunning} className="bg-primary hover:bg-primary/90">
-                {isBackendRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />} Run
-              </Button>
-              <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
-                {isDebugging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />} Debug
-              </Button>
-              <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Sparkles className="mr-2 h-4 w-4" /> Generate
-              </Button>
-              {isAiSuggestionsEnabled && (
-                <Popover onOpenChange={(open) => !open && setSuggestion('')}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
-                      {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    {isSuggesting ? (
-                      <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
-                    ) : suggestion ? (
-                      <div className="grid gap-4">
-                        <div className="space-y-2">
-                          <h4 className="font-medium leading-none">AI Suggestion</h4>
-                          <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
-                        </div>
-                        <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                        <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
-                      </div>
-                    ) : (
-                      <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
-                    )}
-                  </PopoverContent>
-                </Popover>
               )}
-            </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
-              <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Share to Forum</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </CardFooter>
-        </Card>
+              <CardFooter className="flex flex-wrap gap-2 justify-between">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={handleRun} disabled={isBackendRunning} className="bg-primary hover:bg-primary/90">
+                    {isBackendRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />} Run
+                  </Button>
+                  <Button onClick={handleDebugCode} disabled={isDebugging} variant="secondary">
+                    {isDebugging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />} Debug
+                  </Button>
+                  <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                    <Sparkles className="mr-2 h-4 w-4" /> Generate
+                  </Button>
+                  {isAiSuggestionsEnabled && (
+                    <Popover onOpenChange={(open) => !open && setSuggestion('')}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
+                          {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        {isSuggesting ? (
+                          <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
+                        ) : suggestion ? (
+                          <div className="grid gap-4">
+                            <div className="space-y-2">
+                              <h4 className="font-medium leading-none">AI Suggestion</h4>
+                              <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
+                            </div>
+                            <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                            <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
+                          </div>
+                        ) : (
+                          <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => setIsSaveOpen(true)}><Save className="mr-2 h-4 w-4" /> Save</Button>
+                  <Button variant="outline" onClick={() => setIsLoadOpen(true)}><FolderOpen className="mr-2 h-4 w-4" /> Load</Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" onClick={handleShareToForum}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Share to Forum</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </CardFooter>
+            </Card>
+        </div>
 
         {/* ---- preview / result ---- */}
         {isWebPreviewable && isPreviewVisible && (
-          <Card className="flex flex-col h-[80vh] md:h-full">
-            <CardHeader>
+           <Card className={cn(
+              "flex flex-col", 
+              isPreviewFullscreen 
+                ? "fixed inset-0 z-50 h-screen w-screen rounded-none" 
+                : "h-[80vh] md:h-full"
+            )}>
+            <CardHeader className="flex-row items-center justify-between">
               <CardTitle>Preview</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsPreviewFullscreen(!isPreviewFullscreen)}>
+                {isPreviewFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              </Button>
             </CardHeader>
             <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden">
               <SmoothPreview html={previewSrcDoc} />
@@ -498,31 +511,33 @@ export default function CodeEditor(props: CodeEditorProps) {
         )}
 
         {isBackendLang && (
-          <Card className="flex-1 flex flex-col h-[80vh] md:h-full">
-            <Tabs defaultValue="output" className="flex-1 flex flex-col">
-              <CardHeader className="flex-row justify-between items-center">
-                <CardTitle>Result</CardTitle>
-                <TabsList>
-                  <TabsTrigger value="output">Output</TabsTrigger>
-                  <TabsTrigger value="history">History</TabsTrigger>
-                </TabsList>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-auto">
-                <TabsContent value="output" className="h-full m-0">
-                  {isBackendRunning ? (
-                    <div className="flex items-center justify-center h-full"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                  ) : backendError ? (
-                    <pre className="text-destructive whitespace-pre-wrap p-4 font-mono text-sm">{backendError}</pre>
-                  ) : (
-                    <pre className="whitespace-pre-wrap p-4 font-mono text-sm">{backendOutput}</pre>
-                  )}
-                </TabsContent>
-                <TabsContent value="history" className="h-full m-0">
-                  <RunHistory history={history} onRestore={(c) => selectedLanguage !== 'frontend' && onCodeChange(selectedLanguage, c)} />
-                </TabsContent>
-              </CardContent>
-            </Tabs>
-          </Card>
+          <div className={cn(isPreviewFullscreen && "hidden")}>
+            <Card className="flex-1 flex flex-col h-[80vh] md:h-full">
+              <Tabs defaultValue="output" className="flex-1 flex flex-col">
+                <CardHeader className="flex-row justify-between items-center">
+                  <CardTitle>Result</CardTitle>
+                  <TabsList>
+                    <TabsTrigger value="output">Output</TabsTrigger>
+                    <TabsTrigger value="history">History</TabsTrigger>
+                  </TabsList>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-auto">
+                  <TabsContent value="output" className="h-full m-0">
+                    {isBackendRunning ? (
+                      <div className="flex items-center justify-center h-full"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                    ) : backendError ? (
+                      <pre className="text-destructive whitespace-pre-wrap p-4 font-mono text-sm">{backendError}</pre>
+                    ) : (
+                      <pre className="whitespace-pre-wrap p-4 font-mono text-sm">{backendOutput}</pre>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="history" className="h-full m-0">
+                    <RunHistory history={history} onRestore={(c) => selectedLanguage !== 'frontend' && onCodeChange(selectedLanguage, c)} />
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
+            </Card>
+          </div>
         )}
       </div>
 
