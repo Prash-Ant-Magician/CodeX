@@ -164,6 +164,7 @@ export default function CodeEditor(props: CodeEditorProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState('');
   const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
+  const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
   const [viewport, setViewport] = useState<Viewport>('desktop');
 
   const [backendOutput, setBackendOutput] = useState('');
@@ -430,7 +431,6 @@ export default function CodeEditor(props: CodeEditorProps) {
                   <CardHeader className="flex-row items-center justify-between">
                     <div>
                       <CardTitle>Editor</CardTitle>
-                      <CardDescription>Multi-file editor for web projects.</CardDescription>
                     </div>
                     <TabsList>
                       <TabsTrigger value="html">index.html</TabsTrigger>
@@ -460,7 +460,6 @@ export default function CodeEditor(props: CodeEditorProps) {
                 <div className="flex flex-col gap-4 h-full">
                   <CardHeader>
                     <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
-                    <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1 relative">
                     <div className="absolute h-full w-full">
@@ -533,11 +532,13 @@ export default function CodeEditor(props: CodeEditorProps) {
       return (
         <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
           {/* Editor for Backend */}
-          <div className="flex-[2_1_0%] min-h-0">
+           <div className={cn("flex-[2_1_0%] min-h-0", isEditorFullscreen ? "fixed inset-0 z-50 h-screen w-screen rounded-none" : "flex-[2_1_0%]")}>
             <Card className="flex flex-col h-full">
-              <CardHeader>
+              <CardHeader className='flex-row justify-between items-center'>
                 <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
-                <CardDescription>Write and execute {selectedLanguage} code.</CardDescription>
+                <Button variant="ghost" size="icon" onClick={() => setIsEditorFullscreen(!isEditorFullscreen)}>
+                  {isEditorFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                </Button>
               </CardHeader>
               <CardContent className="flex-1 relative">
                 <div className="absolute h-full w-full">
@@ -551,7 +552,7 @@ export default function CodeEditor(props: CodeEditorProps) {
           </div>
         
           {/* Result for Backend */}
-          <div className="flex-1 min-h-0">
+          <div className={cn("flex-1 min-h-0", isEditorFullscreen && "hidden")}>
             <Card className="flex flex-col h-full">
               <Tabs defaultValue="output" className="flex-1 flex flex-col">
                 <CardHeader className="flex-row justify-between items-center">
@@ -640,7 +641,7 @@ export default function CodeEditor(props: CodeEditorProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", isPreviewFullscreen && "hidden")}>
+      <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", isPreviewFullscreen || isEditorFullscreen) && "hidden"}>
         <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
         <div className="sm:ml-auto flex items-center gap-2">
           <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as Language)}>
