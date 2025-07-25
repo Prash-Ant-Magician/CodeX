@@ -15,6 +15,7 @@ import { stressTestCode, StressTestCodeOutput } from '@/ai/flows/stress-test-cod
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { playKeystrokeSound } from '@/lib/sounds';
 
 const playSuccessSound = () => {
   if (typeof window !== 'undefined' && window.AudioContext) {
@@ -501,25 +502,6 @@ type TestResult = {
   message: string;
 } | null;
 
-const playKeystrokeSound = () => {
-    if (typeof window !== 'undefined' && window.AudioContext) {
-        const audioContext = new AudioContext();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-        
-        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.1);
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.1);
-    }
-};
-
 export default function CodingChallenges() {
   const { user } = useAuth();
   const { isTypingSoundEnabled } = useSettings();
@@ -872,3 +854,4 @@ export default function CodingChallenges() {
     </div>
   );
 }
+```
