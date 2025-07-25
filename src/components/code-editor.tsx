@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
@@ -71,8 +70,8 @@ function useEditorCursor() {
   return { onMount, beforeUpdate };
 }
 
-/* ---------- debounced editor ---------- */
-const StableEditor = React.memo(
+/* ---------- stable editor ---------- */
+const StableEditorWrapper = React.memo(
   ({
     language,
     value,
@@ -80,7 +79,6 @@ const StableEditor = React.memo(
     options,
     isSyntaxHighlightingEnabled,
     theme,
-    onMount,
   }: {
     language: string;
     value: string;
@@ -88,40 +86,7 @@ const StableEditor = React.memo(
     options: any;
     isSyntaxHighlightingEnabled: boolean;
     theme: string;
-    onMount: (editor: any) => void;
   }) => {
-    return (
-      <Editor
-        height="100%"
-        language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
-        value={value}
-        theme={theme}
-        onChange={onChange}
-        options={options}
-        onMount={onMount}
-        loading={<Loader2 className="h-8 w-8 animate-spin" />}
-      />
-    );
-  },
-);
-StableEditor.displayName = 'StableEditor';
-
-
-const StableEditorWrapper = ({
-  language,
-  value,
-  onChange,
-  options,
-  isSyntaxHighlightingEnabled,
-  theme,
-}: {
-  language: string;
-  value: string;
-  onChange: (v: string | undefined) => void;
-  options: any;
-  isSyntaxHighlightingEnabled: boolean;
-  theme: string;
-}) => {
     const cursor = useEditorCursor();
     const { isTypingSoundEnabled } = useSettings();
 
@@ -130,41 +95,43 @@ const StableEditorWrapper = ({
     }, [value, cursor]);
 
     const handleCodeChange = (v: string | undefined) => {
-        if (isTypingSoundEnabled) {
-            playKeystrokeSound();
-        }
-        onChange(v);
-    }
+      if (isTypingSoundEnabled) playKeystrokeSound();
+      onChange(v);
+    };
 
     return (
-      <StableEditor
-        language={language}
+      <Editor
+        height="100%"
+        language={isSyntaxHighlightingEnabled ? language : 'plaintext'}
         value={value}
+        theme={theme}
         onChange={handleCodeChange}
         options={options}
-        isSyntaxHighlightingEnabled={isSyntaxHighlightingEnabled}
-        theme={theme}
         onMount={cursor.onMount}
+        loading={<Loader2 className="h-8 w-8 animate-spin" />}
       />
     );
-}
+  },
+);
 StableEditorWrapper.displayName = 'StableEditorWrapper';
 
-
 /* ---------- main component ---------- */
-export default function CodeEditor({
-  codes,
-  selectedLanguage,
-  setSelectedLanguage,
-  onFrontendCodeChange,
-  onCodeChange,
-  onShare,
-  snippets,
-  fetchSnippets,
-  onSaveSnippet,
-  onLoadSnippet,
-  onDeleteSnippet,
-}: CodeEditorProps) {
+export default function CodeEditor(props: CodeEditorProps) {
+  const {
+    codes,
+    selectedLanguage,
+    setSelectedLanguage,
+    onFrontendCodeChange,
+    onCodeChange,
+    onShare,
+    snippets,
+    fetchSnippets,
+    onSaveSnippet,
+    onLoadSnippet,
+    onDeleteSnippet,
+  } = props;
+
+  /* ---------- state ---------- */
   const [activeTab, setActiveTab] = useState<FileType>('html');
   const [previewDoc, setPreviewDoc] = useState('about:blank');
   const [isDebugging, setIsDebugging] = useState(false);
@@ -186,87 +153,10 @@ export default function CodeEditor({
   const [isBackendRunning, setIsBackendRunning] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
+  /* ---------- hooks ---------- */
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAiSuggestionsEnabled, editorFontSize, tabSize, autoBrackets, editorTheme, isSyntaxHighlightingEnabled } = useSettings();
-
-  /* ---------- helpers ---------- */
-  const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
-  const isWebPreviewable = ['frontend', 'html', 'javascript', 'css'].includes(selectedLanguage);
-
-  const loadHistory = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem(`runHistory-${selectedLanguage}`);
-    setHistory(saved ? JSON.parse(saved) : []);
-  }, [selectedLanguage]);
-
-  const addToHistory = useCallback(
-    (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
-      const newEntry = { ...entry, id: Date.now().toString(), timestamp: new Date().toISOString() };
-      const newHistory = [newEntry, ...history];
-      setHistory(newHistory);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`runHistory-${selectedLanguage}`, JSON.stringify(newHistory));
-      }
-    },
-    [history, selectedLanguage],
-  );
-  
-  const handleSaveFlow = async () => {
-      if (!snippetName) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Snippet name cannot be empty.' });
-        return;
-      }
-      setIsActionLoading(true);
-      await onSaveSnippet(snippetName, selectedLanguage);
-      setIsActionLoading(false);
-      setSnippetName('');
-      setIsSaveOpen(false);
-  }
-
-  const handleLoadFlow = (snippet: Snippet) => {
-      onLoadSnippet(snippet);
-      setIsLoadOpen(false);
-  };
-  
-  const handleDeleteFlow = async (id: string) => {
-      setIsActionLoading(true);
-      await onDeleteSnippet(id);
-      setIsActionLoading(false);
-  }
-
-  const handleGenerateCode = async () => {
-    if (!aiPrompt) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Prompt cannot be empty.' });
-        return;
-    }
-    setIsGenerating(true);
-    try {
-        let langForPrompt = selectedLanguage;
-        if (selectedLanguage === 'frontend') {
-            langForPrompt = activeTab;
-        }
-
-        const result = await generateCodeFromPrompt({ prompt: aiPrompt, language: langForPrompt });
-        
-        if (selectedLanguage === 'frontend') {
-            onFrontendCodeChange(activeTab, result.code);
-        } else {
-            onCodeChange(selectedLanguage, result.code)
-        }
-        
-        toast({ title: 'Code Generated', description: 'The AI has generated the code and placed it in the editor.' });
-        setAiPrompt('');
-        setIsAiGenerateOpen(false);
-    } catch (error) {
-        console.error(error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to generate code.' });
-    } finally {
-        setIsGenerating(false);
-    }
-};
-
-  useEffect(() => loadHistory(), [loadHistory]);
   
   useEffect(() => {
     if (isLoadOpen) {
@@ -274,7 +164,24 @@ export default function CodeEditor({
     }
   }, [isLoadOpen, fetchSnippets]);
 
+  /* ---------- helpers ---------- */
+  const isBackendLang = ['c', 'python', 'java', 'typescript', 'ruby', 'r'].includes(selectedLanguage);
+  const isWebPreviewable = ['frontend', 'html', 'css', 'javascript'].includes(selectedLanguage);
+
+  const editorOptions = useMemo(
+    () => ({
+      fontSize: editorFontSize === 'small' ? 12 : editorFontSize === 'medium' ? 14 : 16,
+      tabSize,
+      autoClosingBrackets: autoBrackets ? 'always' : 'never',
+      minimap: { enabled: false },
+      wordWrap: 'on',
+      fontFamily: 'Source Code Pro, monospace',
+    }),
+    [editorFontSize, tabSize, autoBrackets],
+  );
+
   /* ---------- live preview ---------- */
+  const previewDebounce = useRef<NodeJS.Timeout | null>(null);
 
   const updatePreview = useCallback(() => {
     if (!isWebPreviewable) return;
@@ -285,11 +192,20 @@ export default function CodeEditor({
       doc = codes.html;
     } else if (selectedLanguage === 'javascript') {
       doc = `<html><body><script>${codes.javascript}</script></body></html>`;
-    }  else if (selectedLanguage === 'css') {
+    } else if (selectedLanguage === 'css') {
       doc = `<html><head><style>${codes.css}</style></head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
     }
     setPreviewDoc(`data:text/html;charset=utf-8,${encodeURIComponent(doc)}`);
   }, [codes, selectedLanguage, isWebPreviewable]);
+
+  useEffect(() => {
+    if (!isWebPreviewable) return;
+    if (previewDebounce.current) clearTimeout(previewDebounce.current);
+    previewDebounce.current = setTimeout(updatePreview, 500);
+    return () => {
+      if (previewDebounce.current) clearTimeout(previewDebounce.current);
+    };
+  }, [codes, selectedLanguage, updatePreview, isWebPreviewable]);
 
   /* ---------- backend run ---------- */
   const handleRunBackend = useCallback(
@@ -311,33 +227,29 @@ export default function CodeEditor({
         if (result?.success) {
           const out = result.executionOutput || result.compilationOutput || '';
           setBackendOutput(out);
-          addToHistory({ code, result: { success: true, output: out } });
+          setHistory((h) => [{ id: Date.now().toString(), timestamp: new Date().toISOString(), code, result: { success: true, output: out } }, ...h]);
         } else {
           const err = result?.errorOutput || result?.compilationOutput || 'Unknown error';
           setBackendError(err);
-          addToHistory({ code, result: { success: false, output: err } });
+          setHistory((h) => [{ id: Date.now().toString(), timestamp: new Date().toISOString(), code, result: { success: false, output: err } }, ...h]);
         }
       } catch {
         const err = 'Unexpected error';
         setBackendError(err);
-        addToHistory({ code: codes[lang], result: { success: false, output: err } });
+        setHistory((h) => [...h, { id: Date.now().toString(), timestamp: new Date().toISOString(), code: codes[lang], result: { success: false, output: err } }]);
       } finally {
         setIsBackendRunning(false);
       }
     },
-    [codes, addToHistory],
+    [codes],
   );
 
-  /* ---------- ui handlers ---------- */
   const handleRun = () => {
-    if(isBackendLang) {
-      handleRunBackend(selectedLanguage as BackendLanguage)
-    } else {
-      updatePreview();
-      toast({title: 'Preview Updated', description: 'Your preview has been updated with the latest code.'});
-    }
+    if (isBackendLang) handleRunBackend(selectedLanguage as BackendLanguage);
+    else updatePreview();
   };
 
+  /* ---------- other handlers ---------- */
   const handleDebugCode = async () => {
     setIsDebugging(true);
     try {
@@ -369,7 +281,52 @@ export default function CodeEditor({
     }
     onShare(codeToShare, langToShare);
   };
-  
+
+  const handleSaveFlow = async () => {
+    if (!snippetName) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Snippet name cannot be empty.' });
+      return;
+    }
+    setIsActionLoading(true);
+    await onSaveSnippet(snippetName, selectedLanguage);
+    setIsActionLoading(false);
+    setSnippetName('');
+    setIsSaveOpen(false);
+  };
+
+  const handleLoadFlow = (snippet: Snippet) => {
+    onLoadSnippet(snippet);
+    setIsLoadOpen(false);
+  };
+
+  const handleDeleteFlow = async (id: string) => {
+    setIsActionLoading(true);
+    await onDeleteSnippet(id);
+    setIsActionLoading(false);
+  };
+
+  const handleGenerateCode = async () => {
+    if (!aiPrompt) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Prompt cannot be empty.' });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      let langForPrompt = selectedLanguage;
+      if (selectedLanguage === 'frontend') langForPrompt = activeTab;
+      const result = await generateCodeFromPrompt({ prompt: aiPrompt, language: langForPrompt });
+      if (selectedLanguage === 'frontend') onFrontendCodeChange(activeTab, result.code);
+      else onCodeChange(selectedLanguage, result.code);
+      toast({ title: 'Code Generated', description: 'The AI has generated the code and placed it in the editor.' });
+      setAiPrompt('');
+      setIsAiGenerateOpen(false);
+    } catch {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to generate code.' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleSuggestCode = async () => {
     setIsSuggesting(true);
     setSuggestion('');
@@ -384,14 +341,13 @@ export default function CodeEditor({
       }
       const result = await suggestCode({ code: codeToSuggest, language: langToSuggest });
       setSuggestion(result.suggestion);
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to get suggestion.' });
     } finally {
       setIsSuggesting(false);
     }
   };
-  
+
   const handleInsertSuggestion = () => {
     if (selectedLanguage === 'frontend') {
       const currentCode = codes.frontend[activeTab];
@@ -403,18 +359,6 @@ export default function CodeEditor({
     setSuggestion('');
   };
 
-  const editorOptions = useMemo(
-    () => ({
-      fontSize: editorFontSize === 'small' ? 12 : editorFontSize === 'medium' ? 14 : 16,
-      tabSize,
-      autoClosingBrackets: autoBrackets ? 'always' : 'never',
-      minimap: { enabled: false },
-      wordWrap: 'on',
-      fontFamily: 'Source Code Pro, monospace',
-    }),
-    [editorFontSize, tabSize, autoBrackets],
-  );
-
   /* ---------- render ---------- */
   return (
     <div className="flex flex-col gap-4">
@@ -422,9 +366,7 @@ export default function CodeEditor({
         <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
         <div className="sm:ml-auto flex items-center gap-2">
           <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as Language)}>
-            <SelectTrigger className="w-full sm:w-64">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-full sm:w-64"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="frontend">Frontend (HTML/CSS/JS)</SelectItem>
               <SelectItem value="html">HTML</SelectItem>
@@ -459,7 +401,7 @@ export default function CodeEditor({
           isWebPreviewable && isPreviewVisible ? 'md:grid-cols-2' : 'md:grid-cols-1',
         )}
       >
-        {/* ---- editor card ---- */}
+        {/* ---- editor ---- */}
         <Card className="flex flex-col h-[80vh] md:h-full">
           {selectedLanguage === 'frontend' ? (
             <Tabs defaultValue="html" className="flex-1 flex flex-col" onValueChange={(v) => setActiveTab(v as FileType)}>
@@ -509,28 +451,31 @@ export default function CodeEditor({
               <Button onClick={() => setIsAiGenerateOpen(true)} className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 <Sparkles className="mr-2 h-4 w-4" /> Generate
               </Button>
-               {isAiSuggestionsEnabled && (
-                  <Popover onOpenChange={(open) => { if(!open) setSuggestion('')}}>
-                      <PopoverTrigger asChild>
-                         <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
-                              {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                          </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                         {isSuggesting ? (
-                              <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
-                          ) : suggestion ? (
-                              <div className="grid gap-4">
-                                <div className="space-y-2"><h4 className="font-medium leading-none">AI Suggestion</h4><p className="text-sm text-muted-foreground">The AI suggests the following code.</p></div>
-                                <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
-                                <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
-                              </div>
-                          ) : (
-                              <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
-                          )}
-                      </PopoverContent>
-                    </Popover>
-                )}
+              {isAiSuggestionsEnabled && (
+                <Popover onOpenChange={(open) => !open && setSuggestion('')}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" onClick={handleSuggestCode} disabled={isSuggesting} size="icon" aria-label="Get AI suggestion">
+                      {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    {isSuggesting ? (
+                      <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</div>
+                    ) : suggestion ? (
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">AI Suggestion</h4>
+                          <p className="text-sm text-muted-foreground">The AI suggests the following code.</p>
+                        </div>
+                        <pre className="bg-muted p-2 rounded-md overflow-x-auto text-sm font-code">{suggestion}</pre>
+                        <Button onClick={handleInsertSuggestion} size="sm"><CornerDownLeft className="mr-2 h-4 w-4" /> Insert</Button>
+                      </div>
+                    ) : (
+                      <p className="p-4 text-sm text-center text-muted-foreground">No suggestion available.</p>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -678,5 +623,3 @@ export default function CodeEditor({
     </div>
   );
 }
-
-    
