@@ -262,8 +262,11 @@ export default function CodeEditor({
         combinedDoc = `<html><body><script>${codes.javascript}</script></body></html>`
     }
 
-    setPreviewDoc(combinedDoc);
+    if (typeof window !== 'undefined') {
+        setPreviewDoc(`data:text/html;base64,${window.btoa(unescape(encodeURIComponent(combinedDoc)))}`);
+    }
   }, [codes, selectedLanguage]);
+
 
   useEffect(() => {
     if (isLoadOpen) {
@@ -572,7 +575,7 @@ export default function CodeEditor({
           {isWebPreviewable && isPreviewVisible && (
               <Card className="flex flex-col h-[80vh] md:h-full">
               <CardHeader><CardTitle>Preview</CardTitle></CardHeader>
-              <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe srcDoc={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
+              <CardContent className="flex-1 bg-muted/50 rounded-b-lg overflow-hidden"><iframe src={previewDoc} title="Preview" sandbox="allow-scripts" className="w-full h-full border-0 bg-white" /></CardContent>
               </Card>
           )}
 
