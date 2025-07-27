@@ -167,9 +167,9 @@ export default function PostPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap">
+          <pre className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-sans">
             {post.content}
-          </div>
+          </pre>
         </CardContent>
         <CardFooter>
             <div className="flex gap-2">
@@ -228,7 +228,7 @@ export default function PostPage() {
                            </AlertDialog>
                         )}
                     </div>
-                    <p className="mt-4 text-sm whitespace-pre-wrap">{comment.content}</p>
+                    <pre className="mt-4 text-sm whitespace-pre-wrap font-sans">{comment.content}</pre>
                 </CardContent>
             </Card>
         ))}

@@ -11,7 +11,8 @@ import {
     orderBy, 
     serverTimestamp, 
     Timestamp,
-    runTransaction
+    runTransaction,
+    writeBatch
 } from 'firebase/firestore';
 
 // Data Structures
@@ -94,9 +95,14 @@ export const getPost = async (postId: string): Promise<Post | null> => {
 
 export const deletePost = async (postId: string): Promise<void> => {
     try {
-        const postDoc = doc(db, POSTS_COLLECTION, postId);
-        // You might want to delete subcollections (comments) here too if needed, using a batch write or cloud function.
-        await deleteDoc(postDoc);
+        const postDocRef = doc(db, POSTS_COLLECTION, postId);
+        // Note: Deleting a document does not delete its subcollections.
+        // For a full cleanup, a Cloud Function triggered on delete would be needed to recursively delete comments.
+        // This client-side delete will only remove the post document itself.
+        
+        // It's crucial that Firestore rules prevent unauthorized deletion.
+        await deleteDoc(postDocRef);
+
     } catch (error) {
         console.error("Error deleting post:", error);
         throw new Error("Could not delete post.");
@@ -147,8 +153,23 @@ export const getComments = async (postId: string): Promise<Comment[]> => {
 
 export const deleteComment = async (postId: string, commentId: string): Promise<void> => {
     try {
-        const commentDoc = doc(db, POSTS_COLLECTION, postId, COMMENTS_COLLECTION, commentId);
-        await deleteDoc(commentDoc);
+        const postDocRef = doc(db, POSTS_COLLECTION, postId);
+        const commentDocRef = doc(db, POSTS_COLLECTION, postId, COMMENTS_COLLECTION, commentId);
+
+        await runTransaction(db, async (transaction) => {
+            const postDoc = await transaction.get(postDocRef);
+            if (!postDoc.exists()) {
+                throw "Post does not exist!";
+            }
+            
+            // Delete the comment
+            transaction.delete(commentDocRef);
+
+            // Decrement the comment count, ensuring it doesn't go below zero
+            const newCommentCount = Math.max(0, (postDoc.data().commentCount || 0) - 1);
+            transaction.update(postDocRef, { commentCount: newCommentCount });
+        });
+
     } catch (error) {
         console.error("Error deleting comment:", error);
         throw new Error("Could not delete comment.");
