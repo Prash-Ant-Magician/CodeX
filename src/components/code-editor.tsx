@@ -112,7 +112,7 @@ const StableEditor = React.memo(
 StableEditor.displayName = 'StableEditor';
 
 // --- NEW: zero-black-flash preview component ---
-const SmoothPreview = ({ html }: { html: string }) => {
+const SmoothPreview = React.memo(({ html }: { html: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // set content once the frame is mounted
@@ -131,7 +131,9 @@ const SmoothPreview = ({ html }: { html: string }) => {
       className="w-full h-full border-0 bg-white"
     />
   );
-};
+});
+SmoothPreview.displayName = 'SmoothPreview';
+
 
 /* ---------- main component ---------- */
 export default function CodeEditor(props: CodeEditorProps) {
@@ -242,7 +244,16 @@ export default function CodeEditor(props: CodeEditorProps) {
     if (selectedLanguage === 'css')
       return `<html><head><style>${codes.css}</style>${logOverrideScript}</head><body><h1>CSS Preview</h1><p>This is a paragraph styled by your CSS.</p></body></html>`;
     return '';
-  }, [codes, selectedLanguage, isWebPreviewable]);
+  }, [
+      isWebPreviewable,
+      selectedLanguage,
+      codes.frontend.css,
+      codes.frontend.html,
+      codes.frontend.javascript,
+      codes.html,
+      codes.javascript,
+      codes.css
+  ]);
 
   /* ---------- Listen for logs from iframe ---------- */
   useEffect(() => {
@@ -522,7 +533,7 @@ export default function CodeEditor(props: CodeEditorProps) {
               ) : (
                 <div className="flex flex-col gap-4 h-full">
                   <CardHeader>
-                    <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Editor</CardTitle>
+                    <CardTitle>{selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)}</CardTitle>
                   </CardHeader>
                   <CardContent className="flex-1 relative">
                     <div className="absolute h-full w-full">
@@ -593,7 +604,7 @@ export default function CodeEditor(props: CodeEditorProps) {
 
     if (isBackendLang) {
       return (
-        <div className="flex flex-col gap-4 h-[calc(100vh-10rem)]">
+        <div className="flex flex-col gap-4 h-[calc(100vh-8rem)]">
           {/* Editor for Backend */}
           <div className={cn("flex-[2_1_0%] min-h-0", isEditorFullscreen && "fixed inset-0 z-50 bg-background p-4")}>
             <Card className="flex flex-col h-full">
@@ -658,8 +669,10 @@ export default function CodeEditor(props: CodeEditorProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className={cn("flex flex-col sm:flex-row gap-4 sm:items-center", (isPreviewFullscreen || isEditorFullscreen) && "hidden")}>
-        <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
-        <div className="sm:ml-auto flex items-center gap-2">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold font-headline">Code Playground</h1>
+        </div>
+        <div className="flex items-center gap-2">
           <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as Language)}>
             <SelectTrigger className="w-full sm:w-64"><SelectValue /></SelectTrigger>
             <SelectContent>
